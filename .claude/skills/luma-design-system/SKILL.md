@@ -17,7 +17,9 @@ Ziel: Eine Pflegekraft erkennt im Gehen, mit einer Hand, in 5 Sekunden, was als 
 6. **Flach:** tonale Flächen und Ränder statt Schatten.
 7. **Bewegung** 150–250 ms, nur für Statuswechsel und Umsortierung; „Animationen entfernen“ respektieren.
 8. **Phone und Tablet:** Layout nach `WindowSizeClass` (siehe `references/components.md`).
-9. **Previews:** Light und Dark, relevante Zustände, `fontScale = 2f`; Screens zusätzlich als Tablet
+9. **Ruhe vor Vollständigkeit:** Eine Karte zeigt nur den maßgeblichen Hinweis, max. 2 Chips, nichts unter 14 sp;
+   Details gehören ins Detail. Das Zielbild gibt Inhalte vor, nicht die Dichte (siehe `references/components.md`, „Dichte“).
+10. **Previews:** Light und Dark, relevante Zustände, `fontScale = 2f`; Screens zusätzlich als Tablet
    (`device = Devices.TABLET`).
 
 ## Sprache

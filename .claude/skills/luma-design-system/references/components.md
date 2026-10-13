@@ -22,15 +22,21 @@ Nach `currentWindowAdaptiveInfo().windowSizeClass`, nie nach Gerätetyp oder Aus
 Fläche `secondary`, Text `onSecondary`. Zeile 1: „Ahorn · Frühdienst“ (`titleSmall`).
 Zeile 2: „07:15 · noch 6:45 h“ (`headlineSmall`, `tnum`). Nach 14:00: „Schicht beendet“.
 
-## MetricRow (`metric_row`)
+## Dichte (gilt für das Dashboard)
 
-Horizontal scrollbare Chips: „2 dringend · 7 zeitnah · 2 aus Nachtdienst · 2× Luma nicht erreicht“.
-Jeder Chip ist ein Filter (`FilterChip`, ≥ 48 dp hoch), Zahl in `labelLarge`, Statusfarbe nur als Icon.
-Bei 0 wird der Chip ausgeblendet, nicht ausgegraut.
+Das Zielbild gibt Inhalte vor, nicht die Dichte. Auf dem Phone (411 × 891 dp, Schrift 100 %) sind beide
+Karten unter „Jetzt handeln“ ohne Scrollen sichtbar. Auf dem Dashboard nichts unter 14 sp.
+Abstände: 16 dp innerhalb von Karten, 12 dp zwischen Karten, 32 dp zwischen Abschnitten.
+Kein „Neu“-Marker; markiert wird nur, was abweicht („Aus Nachtdienst“, später „In Bearbeitung“).
+
+## MetricRow: Roadmap
+
+Entfällt, bis es Filter gibt. Ohne Filter doppelt sie nur die Zählung der Abschnitte.
 
 ## SectionHeader(count) (`section_<key>`)
 
-`titleSmall` + Anzahl als Badge: „Jetzt handeln · 2“. Abschnitte ohne Einträge entfallen ganz.
+`titleMedium` mit Status-Icon + Anzahl: „Jetzt handeln · 2“. Abschnitte ohne Einträge entfallen ganz.
+Reihenfolge: Jetzt handeln · Demnächst · Schichtverlauf · Zeitnah prüfen · Organisatorisches.
 
 ## PersonCard (`person_card_<residentId>`)
 
@@ -38,14 +44,18 @@ Bei 0 wird der Chip ausgeblendet, nicht ausgegraut.
 ┌───────────────────────────────────────────┐
 │▌ Werner Hoffmann            [⚠ Dringend]   │  titleMedium · SeverityBadge (höchster offener Status)
 │▌ Zi. 2.03 · PG 3                           │  bodyMedium, muted
-│▌ „Berichtet von Zittern und…“   · 06:30  │  1–3 Hinweise (EventItem kompakt), älteste zuerst
-│▌ [Diabetes Typ 2] [Routine 07:00 Blutz.]   │  ContextChips, max. eine Zeile + „+2“
+│▌ vor 45 Min. · 06:30                      │  Metazeile bodyMedium, muted (bzw. „Aus Nachtdienst · gestern 23:15“)
+│▌ Berichtet von Zittern und Schwitzen, hat │  NUR der maßgebliche Hinweis, bodyLarge 16 sp, max. 3 Zeilen
+│▌ laut eigener Aussage noch nicht gefrüh…  │
+│▌ + 1 weiterer Hinweis                     │  weitere Hinweise nur als Anzahl
+│▌ [Diabetes Typ 2…] [Routine 07:00 …] +1   │  max. 2 ContextChips (labelLarge 14 sp) + „+n“
 │▌                          [ Übernehmen ]   │  Schnellaktion, rechts unten
 └───────────────────────────────────────────┘
 ```
-- Streifen links (4 dp) nur in „Jetzt handeln“.
+- Streifen links (4 dp) und SeverityBadge nur in „Jetzt handeln“. In „Zeitnah prüfen“ trägt die
+  Abschnittsüberschrift den Status; die Karte nennt ihn nur in der TalkBack-Ansage.
+- Chip-Priorität: `health_notes` · Routine ±60 min · „Luma nicht erreicht“ (ohne Zahl) · Aktivität.
 - Ganze Karte antippbar → Detail. Schnellaktion ist ein eigenes Touch-Ziel (≥ 48 dp).
-- Mehr als 3 Hinweise: „+ 2 weitere Hinweise“.
 - Semantik zusammengefasst: „Werner Hoffmann, Zimmer 2.03, dringend, 1 Hinweis, Diabetes Typ 2“.
 - Zustände: Standard · gedrückt · ausgewählt (Tablet, `primary`-Rand 2 dp) · Vorschicht („Aus Nachtdienst“).
 
@@ -53,9 +63,24 @@ Bei 0 wird der Chip ausgeblendet, nicht ausgegraut.
 
 Container + Icon + Label aus `LumaTheme.status`, Radius 8, `labelMedium`. Niemals nur ein Farbpunkt.
 
+## UpcomingRow (`section_soon`)
+
+Uhrzeit (`titleMedium`, `tnum`) · Titel · „Name · Zimmer“ · „in 15 Min.“. Hat die Person einen offenen
+Hinweis: eine Zeile „Offener Hinweis bei Margarete Fischer“ (Tap → Person), Text nicht wiederholen,
+nie „Konflikt“.
+
+## ShiftTimeline (`shift_timeline`)
+
+Karte „Schichtverlauf ›“, als Ganzes ein Tap-Ziel (öffnet den Schichtverlauf), einzelne Blöcke nicht antippbar.
+Nacht (20:00–06:00) als ein Block, danach ein Block pro Stunde bis Schichtende, je ≥ 36 dp breit.
+Zahl im Block = alle Hinweise der Stunde (auch erledigte); Tönung und Icon nach höchster **offener**
+Dringlichkeit, vollständig erledigte Stunden neutral. Darunter Routinen als Ticks, Jetzt-Marker.
+Keine Legende auf dem Dashboard. TalkBack: eine Zusammenfassung, z. B.
+„Schichtverlauf, 2 dringende Hinweise, nächste Routine 07:30 Hörgeräte einsetzen“.
+
 ## ContextChip
 
-Neutral (`surface` + `outline`-Rand), Icon optional, `labelMedium`. Nur Fakten aus den Daten:
+Neutral (`surface` + `outline`-Rand), Icon optional, `labelLarge` (14 sp). Nur Fakten aus den Daten:
 `health_notes`, Routine heute ±60 min, Aktivität in der Schicht, weitere Events der Person, „Luma nicht erreicht“.
 
 ## EventItem
