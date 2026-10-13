@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,7 +51,6 @@ import com.mulkatz.lumacare.domain.PersonEntry
 import com.mulkatz.lumacare.domain.Resident
 import com.mulkatz.lumacare.domain.Routine
 import com.mulkatz.lumacare.domain.Severity
-import com.mulkatz.lumacare.domain.ShiftType
 import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 import com.mulkatz.lumacare.ui.theme.tabularNumbers
@@ -85,6 +85,8 @@ fun PersonCard(
     onClick: () -> Unit,
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Gewählt im List-Detail (Tablet): Rand `primary` 2 dp, Semantik `selected`. */
+    selected: Boolean = false,
 ) {
     val res = LocalResources.current
     val resident = entry.resident
@@ -118,13 +120,20 @@ fun PersonCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("person_card_${resident.id}")
-            .semantics { contentDescription = description },
+            .semantics {
+                contentDescription = description
+                if (selected) this.selected = true
+            },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        border = BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant),
+        border = if (selected) {
+            BorderStroke(LumaSizes.selectedBorder, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant)
+        },
     ) {
         Column(
             modifier = Modifier
@@ -193,22 +202,12 @@ fun PersonCard(
 /** Hinweistext auf der Karte bei Schrift ≤ 100 %; darüber unbegrenzt. */
 private const val SUMMARY_MAX_LINES = 3
 
-/**
- * Herkunft „Aus Nachtdienst“ nur, wenn der Nachtdienst den Hinweis nachweislich bearbeitet: Vorschicht
- * ([Handling.PREVIOUS_SHIFT]) und dem Nachtdienst zugeordnet. Einzige Stelle dieser Regel (Karte und Verlauf).
- */
-fun isFromNightShift(event: LumaEvent, handling: Handling): Boolean =
-    handling == Handling.PREVIOUS_SHIFT && event.assignedTo == ShiftType.NIGHT
-
-private val EventEntry.fromNightShift: Boolean
-    get() = isFromNightShift(event, handling)
-
 /** Metazeile des Hinweises: „vor 45 Min. · 06:30“ bzw. „Aus Nachtdienst · gestern 23:15“. */
 @Composable
 private fun hintMetaText(entry: EventEntry, now: LocalDateTime): String {
     val res = LocalResources.current
     val time = entry.event.timestamp
-    return if (entry.fromNightShift) {
+    return if (entry.isFromNightShift) {
         res.getString(R.string.hint_meta, res.getString(R.string.handling_from_night), TimeFormat.clockLabel(res, time, now))
     } else {
         TimeFormat.ageAndClock(res, time, now)
@@ -221,7 +220,7 @@ private fun HintMeta(entry: EventEntry, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {
-        if (entry.fromNightShift) {
+        if (entry.isFromNightShift) {
             Icon(
                 painter = painterResource(R.drawable.ic_moon),
                 contentDescription = null,

@@ -10,28 +10,23 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,6 +49,7 @@ import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
 import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.HistoryEntry
+import com.mulkatz.lumacare.domain.isFromNightShift
 import com.mulkatz.lumacare.domain.Prioritizer
 import com.mulkatz.lumacare.domain.ShiftHours
 import com.mulkatz.lumacare.domain.ShiftType
@@ -61,7 +57,7 @@ import com.mulkatz.lumacare.ui.components.HourBlockLegend
 import com.mulkatz.lumacare.ui.components.HourBlockRow
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
-import com.mulkatz.lumacare.ui.components.isFromNightShift
+import com.mulkatz.lumacare.ui.components.SubpageAppBar
 import com.mulkatz.lumacare.ui.components.iconRes
 import com.mulkatz.lumacare.ui.components.labelRes
 import com.mulkatz.lumacare.ui.dashboard.DashboardPreviewData
@@ -76,7 +72,7 @@ import java.time.LocalDateTime
 /** Holt denselben Zustand wie das Dashboard; der Schichtverlauf hat keine eigene Datenquelle. */
 @Composable
 fun ShiftHistoryRoute(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onPersonClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(
@@ -96,11 +92,12 @@ fun ShiftHistoryRoute(
 /**
  * Schichtverlauf ohne eigenen Zustand: oben die Stundenblöcke mit Legende, darunter alle Hinweise der
  * Zeitleiste und die Routinen bis jetzt, jüngste oben, gruppiert nach laufender Schicht und Vorschicht.
+ * [onBack] `null` heißt Detailbereich auf dem Tablet, ohne Zurück.
  */
 @Composable
 fun ShiftHistoryScreen(
     state: DashboardUiState,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onRetry: () -> Unit,
     onPersonClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -108,7 +105,8 @@ fun ShiftHistoryScreen(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { HistoryAppBar(onBack) },
+        contentWindowInsets = WindowInsets.safeDrawing,
+        topBar = { SubpageAppBar(title = stringResource(R.string.shift_history_title), onBack = onBack) },
     ) { innerPadding ->
         when (state) {
             DashboardUiState.Loading -> CenteredMessage(innerPadding) {
@@ -132,43 +130,6 @@ fun ShiftHistoryScreen(
                 }
             }
             is DashboardUiState.Ready -> HistoryContent(state, innerPadding, onPersonClick)
-        }
-    }
-}
-
-/** Appbar wie der Kopfbereich des Dashboards: Fläche `secondary` bis unter die Statusleiste. */
-@Composable
-private fun HistoryAppBar(onBack: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-    ) {
-        Row(
-            modifier = Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-                .heightIn(min = LumaSizes.appBarMinHeight)
-                .padding(horizontal = LumaTheme.spacing.s),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(LumaSizes.minTouchTarget)
-                    .testTag("action_back"),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_back),
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSecondary,
-                )
-            }
-            Text(
-                text = stringResource(R.string.shift_history_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
         }
     }
 }

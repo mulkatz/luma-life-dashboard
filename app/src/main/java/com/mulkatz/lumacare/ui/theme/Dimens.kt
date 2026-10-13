@@ -20,6 +20,12 @@ object LumaSizes {
     /** Rand von Karten und Chips. */
     val border: Dp = 1.dp
 
+    /** Rand der gewählten Karte im List-Detail (Tablet), Farbe `primary`. */
+    val selectedBorder: Dp = 2.dp
+
+    /** Breite der Liste (Dashboard) im List-Detail; Vorgabe 360–420 dp. */
+    val listPaneWidth: Dp = 400.dp
+
     /** Icon in Chips, Metazeilen und Badges. */
     val iconSmall: Dp = 18.dp
 

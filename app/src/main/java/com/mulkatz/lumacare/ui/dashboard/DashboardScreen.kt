@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,6 +89,8 @@ fun DashboardRoute(
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Gewählte Person im List-Detail (Tablet); auf dem Phone `null`. */
+    selectedPersonId: String? = null,
     viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
     ),
@@ -98,6 +102,7 @@ fun DashboardRoute(
         onPersonClick = onPersonClick,
         onTimelineClick = onTimelineClick,
         modifier = modifier,
+        selectedPersonId = selectedPersonId,
     )
 }
 
@@ -113,10 +118,12 @@ fun DashboardScreen(
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selectedPersonId: String? = null,
 ) {
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             if (state is DashboardUiState.Ready) ReadyHeader(state) else HeaderPlaceholder()
         },
@@ -124,7 +131,7 @@ fun DashboardScreen(
         when (state) {
             DashboardUiState.Loading -> LoadingContent(innerPadding)
             DashboardUiState.Error -> ErrorContent(innerPadding, onRetry)
-            is DashboardUiState.Ready -> ReadyContent(state, innerPadding, onPersonClick, onTimelineClick)
+            is DashboardUiState.Ready -> ReadyContent(state, innerPadding, selectedPersonId, onPersonClick, onTimelineClick)
         }
     }
 }
@@ -274,6 +281,7 @@ private fun ErrorContent(innerPadding: PaddingValues, onRetry: () -> Unit) {
 private fun ReadyContent(
     state: DashboardUiState.Ready,
     innerPadding: PaddingValues,
+    selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
 ) {
@@ -304,6 +312,7 @@ private fun ReadyContent(
                     entries = model.actNow,
                     now = model.now,
                     highlighted = true,
+                    selectedPersonId = selectedPersonId,
                     onPersonClick = onPersonClick,
                 )
             }
@@ -327,12 +336,15 @@ private fun ReadyContent(
                     entries = model.checkSoon,
                     now = model.now,
                     highlighted = false,
+                    selectedPersonId = selectedPersonId,
                     onPersonClick = onPersonClick,
                 )
             }
         }
         if (model.organizational.isNotEmpty()) {
-            item(key = "section_info") { OrganizationalSection(model.organizational, model.now, onPersonClick) }
+            item(key = "section_info") {
+                OrganizationalSection(model.organizational, model.now, selectedPersonId, onPersonClick)
+            }
         }
     }
 }
@@ -396,6 +408,7 @@ private fun PersonSection(
     entries: List<PersonEntry>,
     now: LocalDateTime,
     highlighted: Boolean,
+    selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
 ) {
     Column(modifier = Modifier.contentWidth().testTag(tag)) {
@@ -408,6 +421,7 @@ private fun PersonSection(
                         entry = entry,
                         now = now,
                         highlighted = highlighted,
+                        selected = id == selectedPersonId,
                         onClick = { onPersonClick(id) },
                         // B1: Aktion öffnet die Person; Statuswechsel folgt im Flow-Paket.
                         onAction = { onPersonClick(id) },
@@ -514,6 +528,7 @@ private fun OpenHintLine(hint: LumaEvent, name: String, onClick: () -> Unit) {
 private fun OrganizationalSection(
     entries: List<PersonEntry>,
     now: LocalDateTime,
+    selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
 ) {
     Column(modifier = Modifier.contentWidth().testTag("section_info")) {
@@ -523,7 +538,7 @@ private fun OrganizationalSection(
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 key(entry.resident.id) {
                     val id = entry.resident.id
-                    OrganizationalRow(entry, now, onClick = { onPersonClick(id) })
+                    OrganizationalRow(entry, now, selected = id == selectedPersonId, onClick = { onPersonClick(id) })
                 }
             }
         }
@@ -531,7 +546,7 @@ private fun OrganizationalSection(
 }
 
 @Composable
-private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, onClick: () -> Unit) {
+private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, selected: Boolean, onClick: () -> Unit) {
     val res = LocalResources.current
     val lead = entry.leadEvent
     val moreHints = entry.events.size - 1
@@ -541,6 +556,15 @@ private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, onClick: (
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = LumaSizes.listRowMinHeight)
+            .then(
+                if (selected) {
+                    Modifier
+                        .border(LumaSizes.selectedBorder, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                        .semantics { this.selected = true }
+                } else {
+                    Modifier
+                },
+            )
             .clickable(onClick = onClick)
             .testTag("person_card_${entry.resident.id}")
             .padding(start = LumaTheme.spacing.l, end = LumaTheme.spacing.xs, top = LumaTheme.spacing.s, bottom = LumaTheme.spacing.s),
