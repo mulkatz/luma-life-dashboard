@@ -32,7 +32,7 @@ drei Prinzipien: Personen statt Events, Dringlichkeit ≠ Zuständigkeit, Hinwei
 |---|---|---|
 | <img src="docs/assets/screenshots/dashboard.png" width="240" alt="Dashboard mit Jetzt handeln"> | <img src="docs/assets/screenshots/schichtverlauf-karte.png" width="240" alt="Demnächst und Schichtverlauf"> | <img src="docs/assets/screenshots/detail-uebernommen.png" width="240" alt="Personendetail mit Snackbar Rückgängig"> |
 | **Abschließen mit Pflichtnotiz** | **Schichtverlauf** | **Dark Mode** |
-| <img src="docs/assets/screenshots/abschliessen.png" width="240" alt="Abschließen mit Textbausteinen und Fehlermeldung"> | <img src="docs/assets/screenshots/schichtverlauf.png" width="240" alt="Schichtverlauf mit Legende"> | <img src="docs/assets/screenshots/dashboard-dark.png" width="240" alt="Dashboard im Dark Mode"> |
+| <img src="docs/assets/screenshots/abschliessen.png" width="240" alt="Abschließen mit Textbausteinen und Pflichthinweis"> | <img src="docs/assets/screenshots/schichtverlauf.png" width="240" alt="Schichtverlauf mit Legende"> | <img src="docs/assets/screenshots/dashboard-dark.png" width="240" alt="Dashboard im Dark Mode"> |
 
 <img src="docs/assets/screenshots/tablet.png" width="720" alt="Tablet: Dashboard links, Detail rechts">
 
@@ -54,7 +54,7 @@ drei Prinzipien: Personen statt Events, Dringlichkeit ≠ Zuständigkeit, Hinwei
   Handlungsbedarf; Pflichtnotiz bei dringenden und Gesundheitshinweisen), *Weiterleiten* an Küche,
   Haustechnik, Sozialdienst oder Verwaltung, *Zur Kenntnis* für Info-Hinweise, *Rückgängig* über die Snackbar.
   Die Regeln stehen in [Planung §5](docs/00-planung.md).
-- **Tablet:** ab 840 dp Breite List-Detail (Dashboard links, Detail rechts), darunter eine Spalte.
+- **Tablet:** ab 840 dp Breite List-Detail (Dashboard links auf getönter Fläche, Detail rechts, beim Start die oberste Person geöffnet), darunter eine Spalte.
 - **Dark Mode** über die Systemeinstellung; Layouts wachsen mit großer Schrift (Previews mit 200 %).
 - **Nicht umgesetzt:** Kennzahlen-Zeile (entfällt, bis es Filter gibt), zweiter Flow, LLM-Call,
   Backend. Siehe [Roadmap](docs/01-entscheidungen.md#roadmap).
@@ -134,7 +134,6 @@ Begründungen und Datenmodell: [docs/01-entscheidungen.md](docs/01-entscheidunge
 - Alle Daten sind fiktiv und stammen aus dem Seed.
 - Keine Anmeldung: Der Verlauf nennt die Schicht, keine Namen.
 - Keine Synchronisation zwischen Geräten; Weiterleiten wird nur gespeichert und angezeigt.
-- Tablet: oben zwischen Liste und Detail bleibt eine optische Lücke.
 - Ein CI-Workflow (`.github/workflows/ci.yml`) ist vorhanden. Seine Läufe waren zeitweise durch das
   GitHub-Actions-Budget blockiert (Abrechnung, nicht der Code).
 <!-- GRENZEN -->
