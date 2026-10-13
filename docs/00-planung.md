@@ -217,8 +217,8 @@ Status wird immer mit **Icon + Label + Farbe** dargestellt (z. B. ⚠ „Dringen
 | `titleSmall` | 15/20 | 600 | Abschnittsüberschriften |
 | `bodyLarge` | 16/24 | 400 | Luma-Aussage |
 | `bodyMedium` | 14/20 | 400 | Kontext, Metadaten |
-| `labelLarge` | 14/20 | 600 | Buttons |
-| `labelMedium` | 12/16 | 600 | Badges, Chips |
+| `labelLarge` | 14/20 | 600 | Buttons, Badges, Chips |
+| `labelMedium` | 12/16 | 600 | Nur außerhalb des Dashboards (dort min. 14 sp, Badges und Chips in `labelLarge`) |
 Mindestgröße 12 sp; getestet bei Schriftgröße 130 % und 200 %.
 
 ### Raster, Formen, Bewegung

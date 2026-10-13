@@ -42,26 +42,26 @@ Reihenfolge: Jetzt handeln · Demnächst · Schichtverlauf · Zeitnah prüfen ·
 
 ```
 ┌───────────────────────────────────────────┐
-│▌ Werner Hoffmann            [⚠ Dringend]   │  titleMedium · SeverityBadge (höchster offener Status)
-│▌ Zi. 2.03 · PG 3                           │  bodyMedium, muted
+│▌ Werner Hoffmann · 2.03     [⚠ Dringend]   │  titleMedium, eine Zeile (lange Namen umbrechen) · SeverityBadge
 │▌ vor 45 Min. · 06:30                      │  Metazeile bodyMedium, muted (bzw. „Aus Nachtdienst · gestern 23:15“)
-│▌ Berichtet von Zittern und Schwitzen, hat │  NUR der maßgebliche Hinweis, bodyLarge 16 sp, max. 3 Zeilen
+│▌ Berichtet von Zittern und Schwitzen, hat │  NUR der maßgebliche Hinweis, bodyLarge 16 sp, max. 3 Zeilen (bei Schrift > 100 % unbegrenzt)
 │▌ laut eigener Aussage noch nicht gefrüh…  │
 │▌ + 1 weiterer Hinweis                     │  weitere Hinweise nur als Anzahl
-│▌ [Diabetes Typ 2…] [Routine 07:00 …] +1   │  max. 2 ContextChips (labelLarge 14 sp) + „+n“
+│▌ [Diabetes Typ 2…] [⟳ 07:00 Blutz…] +1   │  max. 2 ContextChips (labelLarge 14 sp, einzeilig) + „+n“
 │▌                          [ Übernehmen ]   │  Schnellaktion, rechts unten
 └───────────────────────────────────────────┘
 ```
 - Streifen links (4 dp) und SeverityBadge nur in „Jetzt handeln“. In „Zeitnah prüfen“ trägt die
   Abschnittsüberschrift den Status; die Karte nennt ihn nur in der TalkBack-Ansage.
-- Chip-Priorität: `health_notes` · Routine ±60 min · „Luma nicht erreicht“ (ohne Zahl) · Aktivität.
+- Chip-Priorität (legt der Prioritizer fest, die UI sortiert nicht): `health_notes` · Routine ±60 min ·
+  „Luma nicht erreicht“ (ohne Zahl) · Aktivität. Pflegegrad nur in TalkBack-Ansage und Detail.
 - Ganze Karte antippbar → Detail. Schnellaktion ist ein eigenes Touch-Ziel (≥ 48 dp).
 - Semantik zusammengefasst: „Werner Hoffmann, Zimmer 2.03, dringend, 1 Hinweis, Diabetes Typ 2“.
 - Zustände: Standard · gedrückt · ausgewählt (Tablet, `primary`-Rand 2 dp) · Vorschicht („Aus Nachtdienst“).
 
 ## SeverityBadge
 
-Container + Icon + Label aus `LumaTheme.status`, Radius 8, `labelMedium`. Niemals nur ein Farbpunkt.
+Container + Icon + Label aus `LumaTheme.status`, Radius 8, `labelLarge` (14 sp). Niemals nur ein Farbpunkt.
 
 ## UpcomingRow (`section_soon`)
 
@@ -119,5 +119,6 @@ Nach jeder Statusänderung: „Abgeschlossen · Rückgängig“, 6 s. Ersetzt Be
 ## EmptyState / LoadingState
 
 - `LoadingState` während des Seed-Imports (`loading`): Skeleton-Karten, kein Spinner allein.
+- `ErrorState` (`error_state`) wenn der Import scheitert: „Daten konnten nicht geladen werden“ + „Erneut versuchen“ (`action_retry`).
 - `EmptyState` (`empty_state`) **nur** nach abgeschlossenem Laden: Icon `task_alt`,
   „Alles erledigt“ + „Gerade braucht niemand deine Aufmerksamkeit.“
