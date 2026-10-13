@@ -9,7 +9,11 @@ import com.mulkatz.lumacare.domain.DashboardMetrics
 import com.mulkatz.lumacare.domain.DashboardModel
 import com.mulkatz.lumacare.domain.EventAction
 import com.mulkatz.lumacare.domain.Handling
+import com.mulkatz.lumacare.domain.HistoryEntry
+import com.mulkatz.lumacare.domain.HourPhase
+import com.mulkatz.lumacare.domain.NowMarker
 import com.mulkatz.lumacare.domain.Prioritizer
+import com.mulkatz.lumacare.domain.Severity
 import com.mulkatz.lumacare.domain.UpcomingItem
 import com.mulkatz.lumacare.testing.InMemoryAppStateStore
 import com.mulkatz.lumacare.testing.inMemoryDatabase
@@ -109,5 +113,57 @@ class DashboardSeedTest {
         assertEquals(listOf("rt06", "rt03", "rt02", "rt07", "rt05", "rt01"), timeline.routines.map { it.routine.id })
         assertEquals(2, timeline.summary.openUrgentEvents)
         assertEquals("rt07", timeline.summary.nextRoutine?.routine?.id)
+    }
+
+    @Test
+    fun `stundenblöcke um 07_15 entsprechen dem seed`() {
+        val blocks = model.hours.blocks
+
+        assertEquals(listOf(7, 15, 4, 0, 0, 0, 0, 0, 0), blocks.map { it.hintCount })
+        assertEquals(
+            listOf(Severity.URGENT, Severity.URGENT, Severity.INFO, null, null, null, null, null, null),
+            blocks.map { it.openSeverity },
+        )
+        assertEquals(
+            listOf(HourPhase.PAST, HourPhase.PAST, HourPhase.CURRENT) + List(6) { HourPhase.FUTURE },
+            blocks.map { it.phase },
+        )
+        assertEquals(NowMarker(blockIndex = 2, fraction = 0.25f), model.hours.nowMarker)
+    }
+
+    @Test
+    fun `dringend in nacht und 06 kommt von e018 bzw_ e005`() {
+        val openUrgent = model.timeline.events.map { it.event }.filter { it.isOpen && it.severity == Severity.URGENT }
+
+        assertEquals(listOf("e018", "e005"), openUrgent.map { it.id })
+        assertTrue(openUrgent[0].timestamp.isBefore(model.timeline.shiftStart))
+        assertEquals(6, openUrgent[1].timestamp.hour)
+    }
+
+    @Test
+    fun `routine-ticks bei 06_30, 06_45, 07_00, 07_30, 08_00 und 10_00, rt04 fehlt`() {
+        val ticks = model.hours.blocks.map { it.routineTicks }
+
+        assertEquals(
+            listOf(emptyList(), listOf(0.5f, 0.75f), listOf(0f, 0.5f), listOf(0f), emptyList(), listOf(0f), emptyList(), emptyList(), emptyList()),
+            ticks,
+        )
+        assertTrue(model.timeline.routines.none { it.routine.id == "rt04" })
+    }
+
+    @Test
+    fun `verlauf gruppiert e018 unter vorschicht und e005 unter frühdienst, routinen nur bis now`() {
+        val history = model.history
+        fun List<HistoryEntry>.ids() = map {
+            when (it) {
+                is HistoryEntry.Hint -> it.event.id
+                is HistoryEntry.PlannedRoutine -> it.routine.id
+            }
+        }
+
+        assertEquals(listOf("e002", "e011", "e006", "e018", "e013", "e026", "e025"), history.previousShift.ids())
+        assertTrue("e005" in history.currentShift.ids())
+        assertEquals(listOf("rt02", "rt03", "rt06"), history.currentShift.filterIsInstance<HistoryEntry.PlannedRoutine>().map { it.routine.id })
+        assertEquals(19 + 3, history.currentShift.size)
     }
 }

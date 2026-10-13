@@ -15,6 +15,10 @@ data class DashboardModel(
     val upcoming: List<UpcomingItem>,
     val metrics: DashboardMetrics,
     val timeline: Timeline,
+    /** [timeline] als Stundenblöcke für die Karte „Schichtverlauf“. */
+    val hours: ShiftHours,
+    /** [timeline] als chronologische Liste für den Screen „Schichtverlauf“. */
+    val history: ShiftHistory,
 )
 
 /** Eine Personenkarte: alle offenen Hinweise der Person, der maßgebliche zuerst. */

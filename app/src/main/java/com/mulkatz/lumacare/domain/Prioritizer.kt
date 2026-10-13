@@ -25,7 +25,8 @@ import java.time.LocalTime
  *   Routine ±60 min, „Luma nicht erreicht“, Aktivität in der Schicht, zuletzt die Anzahl weiterer Hinweise.
  * - **Kennzahlen** zählen einheitlich Personen: in „Jetzt handeln“, in „Zeitnah prüfen“, mit
  *   Vorschicht-Hinweis ohne Übernahme, mit offenem `missed_call`.
- * - **Zeitleiste:** Fenster [20:00 des Vortags, Schichtende), ausgelegt auf den Frühdienst.
+ * - **Zeitleiste:** Fenster [20:00 des Vortags, Schichtende), ausgelegt auf den Frühdienst; daraus
+ *   [ShiftHours] (Stundenblöcke) und [ShiftHistory] (chronologische Liste).
  */
 object Prioritizer {
     val NEARBY_WINDOW: Duration = Duration.ofMinutes(60)
@@ -48,6 +49,7 @@ object Prioritizer {
         val checkSoon = bySeverity[Severity.ATTENTION].orEmpty()
         val organizational = bySeverity[Severity.INFO].orEmpty()
         val leadByResident = entries.associate { it.resident.id to it.leadEvent.event }
+        val timeline = timeline(data, residents, now, shift)
 
         return DashboardModel(
             now = now,
@@ -61,7 +63,9 @@ object Prioritizer {
                 previousShiftPersons = entries.count { entry -> entry.events.any { it.handling == Handling.PREVIOUS_SHIFT } },
                 notReachedPersons = entries.count { entry -> entry.events.any { it.event.type == EventType.MISSED_CALL } },
             ),
-            timeline = timeline(data, residents, now, shift),
+            timeline = timeline,
+            hours = ShiftHours.from(timeline, now),
+            history = ShiftHistory.from(timeline, now),
         )
     }
 
