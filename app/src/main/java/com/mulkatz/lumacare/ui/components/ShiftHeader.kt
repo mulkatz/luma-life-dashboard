@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,6 +31,7 @@ import com.mulkatz.lumacare.ui.theme.tabularNumbers
  * @param shift Schicht, z. B. „Frühdienst“.
  * @param time aktuelle Uhrzeit, z. B. „07:15“.
  * @param remaining Restzeit der Schicht, z. B. „6:45 h“; `null`, wenn die Schicht beendet ist.
+ * @param remainingSpoken Restzeit für TalkBack, z. B. „6 Stunden 45 Minuten“; ohne Angabe gilt [remaining].
  */
 @Composable
 fun ShiftHeader(
@@ -38,12 +40,20 @@ fun ShiftHeader(
     time: String,
     remaining: String?,
     modifier: Modifier = Modifier,
+    remainingSpoken: String? = remaining,
 ) {
     val status = if (remaining != null) {
         stringResource(R.string.shift_header_remaining, remaining)
     } else {
         stringResource(R.string.shift_header_ended)
     }
+    val title = stringResource(R.string.shift_header_title, area, shift)
+    val statusSpoken = if (remainingSpoken != null) {
+        stringResource(R.string.shift_header_remaining, remainingSpoken)
+    } else {
+        stringResource(R.string.shift_header_ended)
+    }
+    val description = stringResource(R.string.shift_header_description, title, time, statusSpoken)
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -54,12 +64,15 @@ fun ShiftHeader(
         Column(
             modifier = Modifier
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-                .padding(horizontal = LumaTheme.spacing.l, vertical = LumaTheme.spacing.l)
-                .semantics(mergeDescendants = true) { heading() },
+                .padding(horizontal = LumaTheme.spacing.l, vertical = LumaTheme.spacing.m)
+                .semantics(mergeDescendants = true) {
+                    heading()
+                    contentDescription = description
+                },
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
         ) {
             Text(
-                text = stringResource(R.string.shift_header_title, area, shift),
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
@@ -69,6 +82,9 @@ fun ShiftHeader(
         }
     }
 }
+
+/** Kurzform des Wohnbereichs: Text nach dem letzten Gedankenstrich („Wohnbereich 2 – Ahorn“ → „Ahorn“), sonst unverändert. */
+fun shortUnitName(unit: String): String = unit.substringAfterLast('–', missingDelimiterValue = "").trim().ifEmpty { unit.trim() }
 
 @Preview(name = "Light")
 @Composable

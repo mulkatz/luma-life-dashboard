@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,16 +20,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.mulkatz.lumacare.R
+import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 
-/** „Alles erledigt“ – nur nach abgeschlossenem Laden zeigen. */
+/** „Alles erledigt“ – nur nach abgeschlossenem Laden zeigen. Breite und Innenabstand legt nur diese Komponente fest. */
 @Composable
 fun EmptyState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .widthIn(max = 640.dp)
+            .widthIn(max = LumaSizes.contentMaxWidth)
             .fillMaxWidth()
             .padding(LumaTheme.spacing.xl)
             .testTag("empty_state"),
@@ -39,7 +40,7 @@ fun EmptyState(modifier: Modifier = Modifier) {
             painter = painterResource(R.drawable.ic_task_alt),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(LumaSizes.iconLarge),
         )
         Text(
             text = stringResource(R.string.empty_state_title),
@@ -57,14 +58,14 @@ fun EmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(name = "Light", showBackground = true)
+@Preview(name = "Light")
 @Composable
 private fun EmptyStatePreview() {
-    LumaTheme(darkTheme = false) { EmptyState() }
+    LumaTheme(darkTheme = false) { Surface(color = MaterialTheme.colorScheme.background) { EmptyState() } }
 }
 
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF17151F)
+@Preview(name = "Dark")
 @Composable
 private fun EmptyStateDarkPreview() {
-    LumaTheme(darkTheme = true) { EmptyState() }
+    LumaTheme(darkTheme = true) { Surface(color = MaterialTheme.colorScheme.background) { EmptyState() } }
 }

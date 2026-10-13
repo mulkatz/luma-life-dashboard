@@ -6,7 +6,93 @@
     <string name="shift_header_time">%1$s · %2$s</string>
     <string name="shift_header_remaining">noch %1$s</string>
     <string name="shift_header_ended">Schicht beendet</string>
+    <string name="shift_header_description">%1$s, %2$s, %3$s</string>
+    <string name="shift_early">Frühdienst</string>
+    <string name="shift_night">Nachtdienst</string>
 
     <string name="empty_state_title">Alles erledigt</string>
     <string name="empty_state_body">Gerade braucht niemand deine Aufmerksamkeit.</string>
+
+    <!-- Dashboard: Zustände -->
+    <string name="dashboard_loading">Hinweise werden geladen …</string>
+    <string name="dashboard_error_title">Daten konnten nicht geladen werden</string>
+    <string name="action_retry">Erneut versuchen</string>
+
+    <!-- Dashboard: Abschnitte -->
+    <string name="section_now">Jetzt handeln</string>
+    <string name="section_soon">Demnächst</string>
+    <string name="section_attention">Zeitnah prüfen</string>
+    <string name="section_info">Organisatorisches</string>
+
+    <!-- Dringlichkeit und Bearbeitungsstand -->
+    <string name="severity_urgent">Dringend</string>
+    <string name="severity_attention">Zeitnah</string>
+    <string name="severity_info">Info</string>
+    <string name="handling_from_night">Aus Nachtdienst</string>
+
+    <!-- Aktionen -->
+    <string name="action_take_over">Übernehmen</string>
+    <string name="action_confirm_handover">Übernahme bestätigen</string>
+    <string name="action_resolve">Abschließen</string>
+    <string name="action_forward">Weiterleiten</string>
+
+    <!-- Personenkarte -->
+    <string name="person_meta_spoken">Zimmer %1$s, Pflegegrad %2$d</string>
+    <string name="name_and_room">%1$s · %2$s</string>
+    <string name="hint_meta">%1$s · %2$s</string>
+    <plurals name="more_hints">
+        <item quantity="one">+ %d weiterer Hinweis</item>
+        <item quantity="other">+ %d weitere Hinweise</item>
+    </plurals>
+    <plurals name="hint_count">
+        <item quantity="one">%d Hinweis</item>
+        <item quantity="other">%d Hinweise</item>
+    </plurals>
+    <string name="chip_routine">%1$s %2$s</string>
+    <string name="chip_routine_spoken">Routine %1$s %2$s</string>
+    <string name="chip_activity">%1$s %2$s</string>
+    <string name="chip_not_reached">Luma nicht erreicht</string>
+    <string name="chip_more">+%1$d</string>
+    <plurals name="chip_more_spoken">
+        <item quantity="one">%d weiterer Kontext</item>
+        <item quantity="other">%d weitere Kontexte</item>
+    </plurals>
+
+    <!-- Hinweistypen -->
+    <string name="event_type_health_hint">Gesundheit</string>
+    <string name="event_type_mood">Stimmung</string>
+    <string name="event_type_request">Anliegen</string>
+    <string name="event_type_meal_wish">Essenswunsch</string>
+    <string name="event_type_activity_signup">Anmeldung</string>
+    <string name="event_type_family_message">Nachricht von Angehörigen</string>
+    <string name="event_type_missed_call">Nicht erreicht</string>
+
+    <!-- Demnächst -->
+    <string name="upcoming_routine_meta">%1$s · %2$s</string>
+    <string name="upcoming_activity_meta">%1$s · Aktivität</string>
+    <string name="upcoming_open_hint">Offener Hinweis bei %1$s</string>
+
+    <!-- Zeiten -->
+    <string name="time_just_now">gerade eben</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">vor %d Min.</item>
+        <item quantity="other">vor %d Min.</item>
+    </plurals>
+    <string name="time_hours_ago">vor %1$d Std.</string>
+    <string name="time_yesterday">gestern %1$s</string>
+    <string name="time_now">jetzt</string>
+    <plurals name="time_in_minutes">
+        <item quantity="one">in %d Min.</item>
+        <item quantity="other">in %d Min.</item>
+    </plurals>
+    <string name="time_remaining_short">%1$d:%2$02d h</string>
+    <string name="time_hours_and_minutes">%1$s %2$s</string>
+    <plurals name="time_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+    <plurals name="time_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
 </resources>
