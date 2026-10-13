@@ -75,8 +75,17 @@ Karte „Schichtverlauf ›“, als Ganzes ein Tap-Ziel (öffnet den Schichtverl
 Nacht (20:00–06:00) als ein Block, danach ein Block pro Stunde bis Schichtende, je ≥ 36 dp breit.
 Zahl im Block = alle Hinweise der Stunde (auch erledigte); Tönung und Icon nach höchster **offener**
 Dringlichkeit, vollständig erledigte Stunden neutral. Darunter Routinen als Ticks, Jetzt-Marker.
-Keine Legende auf dem Dashboard. TalkBack: eine Zusammenfassung, z. B.
-„Schichtverlauf, 2 dringende Hinweise, nächste Routine 07:30 Hörgeräte einsetzen“.
+Keine Legende auf dem Dashboard. Der Jetzt-Marker liegt hinter den Kacheln (nur Punkt darüber und Strich
+in der Tick-Fläche sichtbar), nie über Zahl oder Icon. Semantik am klickbaren Knoten: eine Zusammenfassung
+plus `Role.Button`, z. B. „Schichtverlauf, 2 dringende Hinweise, nächste Routine 07:30 Hörgeräte einsetzen“.
+
+## ShiftHistory (`shift_history`)
+
+Eigener Screen, Appbar als `secondary`-Fläche wie der ShiftHeader (Zurück 48 dp). Oben die Blockreihe mit
+Legende, darunter chronologisch, jüngste oben, gruppiert (`history_group_current`, `history_group_previous`).
+Eintrag: Uhrzeit · Dringlichkeit (Icon + Text) · Name · Zimmer · Originaltext 16 sp ungekürzt ·
+„Erledigt“ bzw. „Aus Nachtdienst“ (gleiche Regel wie die PersonCard). Routinen bis jetzt als „geplant“,
+keine Aktivitäten. Öffnet beim erneuten Aufruf oben bei „jetzt“.
 
 ## ContextChip
 
