@@ -89,24 +89,32 @@ object Prioritizer {
             .thenBy { it.resident.room }
             .thenBy { it.leadEvent.event.id }
 
-    private fun personEntry(
-        resident: Resident,
-        openEvents: List<LumaEvent>,
-        data: CareData,
-        now: LocalDateTime,
-        shift: Shift,
-    ): PersonEntry {
-        // Zimmer ist innerhalb einer Person konstant, daher reichen Zuständigkeit, Alter und ID.
-        val events = openEvents
-            .map { event -> handling(event, shift.type).let { EventEntry(event, it, action(event, it)) } }
+    /**
+     * Offene Hinweise einer Person in der Reihenfolge der Karte: Dringlichkeit, Zuständigkeit, Alter, ID.
+     * Der maßgebliche steht damit vorn. Zimmer ist innerhalb einer Person konstant und fehlt deshalb.
+     */
+    fun eventEntries(openEvents: List<LumaEvent>, currentShift: ShiftType): List<EventEntry> =
+        openEvents
+            .map { event -> handling(event, currentShift).let { EventEntry(event, it, action(event, it)) } }
             .sortedWith(
                 compareBy<EventEntry> { it.event.severity }
                     .thenBy { it.handling }
                     .thenBy { it.event.timestamp }
                     .thenBy { it.event.id },
             )
-        return PersonEntry(resident, events, contextChips(resident, openEvents, data, now, shift))
-    }
+
+    /** Beginn der Zeitleiste: 20:00 des Vortags der Schicht. */
+    fun timelineStart(shift: Shift): LocalDateTime =
+        shift.start.toLocalDate().minusDays(1).atTime(TIMELINE_START_TIME)
+
+    private fun personEntry(
+        resident: Resident,
+        openEvents: List<LumaEvent>,
+        data: CareData,
+        now: LocalDateTime,
+        shift: Shift,
+    ): PersonEntry =
+        PersonEntry(resident, eventEntries(openEvents, shift.type), contextChips(resident, openEvents, data, now, shift))
 
     private fun contextChips(
         resident: Resident,
@@ -169,7 +177,7 @@ object Prioritizer {
         now: LocalDateTime,
         shift: Shift,
     ): Timeline {
-        val start = shift.start.toLocalDate().minusDays(1).atTime(TIMELINE_START_TIME)
+        val start = timelineStart(shift)
         val end = shift.end
 
         val events = data.events

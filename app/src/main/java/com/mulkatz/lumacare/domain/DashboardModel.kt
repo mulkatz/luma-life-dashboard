@@ -35,7 +35,17 @@ data class EventEntry(
     val event: LumaEvent,
     val handling: Handling,
     val action: EventAction,
-)
+) {
+    /** Herkunft „Aus Nachtdienst“, siehe [isFromNightShift]. */
+    val isFromNightShift: Boolean get() = isFromNightShift(event, handling)
+}
+
+/**
+ * Herkunft „Aus Nachtdienst“ nur, wenn der Nachtdienst den Hinweis nachweislich bearbeitet: Vorschicht
+ * ([Handling.PREVIOUS_SHIFT]) und dem Nachtdienst zugeordnet. Einzige Stelle dieser Regel.
+ */
+fun isFromNightShift(event: LumaEvent, handling: Handling): Boolean =
+    handling == Handling.PREVIOUS_SHIFT && event.assignedTo == ShiftType.NIGHT
 
 /** Zuständigkeit eines offenen Hinweises; zugleich die erste Sortierstufe. */
 enum class Handling {
