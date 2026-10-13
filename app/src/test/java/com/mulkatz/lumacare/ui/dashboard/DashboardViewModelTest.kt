@@ -22,6 +22,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -40,6 +44,7 @@ import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -150,6 +155,35 @@ class DashboardViewModelTest {
         val ready = viewModel.awaitReady()
         assertEquals(2, repository.seedCalls)
         assertEquals(seedNow, ready.model.now)
+    }
+
+    @Test
+    fun `vor dem ersten gefüllten ready erscheint kein ready ohne personen`() = runTest {
+        val seeded = seededRepository().also { it.ensureSeeded() }.observeCareData().first()
+        val viewModel = viewModel(UnseededRepository(seeded))
+        val states = mutableListOf<DashboardUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.toList(states) }
+
+        viewModel.uiState.first { it.hasPersons() }
+
+        assertEquals(DashboardUiState.Loading, states.first())
+        val beforeFirstFilled = states.takeWhile { !it.hasPersons() }
+        assertTrue(beforeFirstFilled.none { it is DashboardUiState.Ready }, "Zustände vor dem ersten Ready: $beforeFirstFilled")
+    }
+
+    private fun DashboardUiState.hasPersons(): Boolean =
+        this is DashboardUiState.Ready && (model.actNow + model.checkSoon + model.organizational).isNotEmpty()
+
+    /** Wie Room: vor dem Seeding leere Daten, danach der Seed. */
+    private class UnseededRepository(private val seeded: CareData) : CareRepository {
+        private val data = MutableStateFlow(CareData(emptyList(), emptyList(), emptyList(), emptyList()))
+
+        override suspend fun ensureSeeded() {
+            delay(100)
+            data.value = seeded
+        }
+
+        override fun observeCareData(): Flow<CareData> = data
     }
 
     /** Wirft beim ersten Import, danach liefert es einen leeren Datenstand. */
