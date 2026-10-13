@@ -34,6 +34,15 @@ UI-Texte, Kommentare, Doku: Deutsch. Bezeichner: Englisch.
 - Nur Fakten aus den Daten. Nichts behaupten, was die Daten nicht hergeben (z. B. „überfällig“).
 - `docs/case/luma-seed.json` bleibt unverändert; Mapping passiert im Importer.
 
+## Subagenten
+
+Die Hauptsitzung plant, entscheidet, integriert und committet. Ausführende Arbeit geht an Agenten
+(`.claude/agents/`), damit Logs, Dateiinhalte und Recherche den Hauptkontext nicht füllen:
+`researcher` (Versionen, Doku) · `implementer` (Arbeitspaket mit Ziel und Abnahmekriterium) ·
+`verifier` (Build, Tests, Lint) · `reviewer` (Diff vor dem Commit).
+Direkt in der Hauptsitzung nur: Entscheidungen, Rückfragen, kleine Änderungen an einer Datei.
+Agenten arbeiten nacheinander am selben Arbeitsbaum, nie parallel an denselben Dateien.
+
 ## Commits
 
 Conventional Commits, alles lowercase, keine Emojis, kein Co-Author-Trailer:

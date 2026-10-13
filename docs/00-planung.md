@@ -271,6 +271,15 @@ Grundsatz: Logik testen, nicht Pixel. Der E2E-Test sichert genau den einen Flow,
 | **`android-feature`** | Wie Entität/DAO/Repository/ViewModel/Screen angelegt werden; Room-/Compose-Konventionen; Testmuster für Unit/Integration/E2E; Definition of Done: build + Tests grün + Screenshot angesehen | automatisch bei Feature-Arbeit |
 | Eingebaut: `/code-review`, `/simplify` | Kritische Prüfung des generierten Codes | vor Commit-Blöcken |
 
+### Subagenten (`.claude/agents/`)
+Die Hauptsitzung plant, entscheidet, integriert und committet; Ausführendes läuft in Agenten, damit der Hauptkontext schlank bleibt.
+| Agent | Aufgabe | Modell |
+|---|---|---|
+| `researcher` | Versionen, Doku, Fehlermeldungen aus Primärquellen | Sonnet |
+| `implementer` | Arbeitspaket umsetzen inkl. Tests, lädt `android-feature` + `luma-design-system` | wie Hauptsitzung |
+| `verifier` | Build, Tests, Lint; meldet nur verdichtete Fehler | Haiku |
+| `reviewer` | Unabhängiger Review des Diffs gegen Konventionen und Produktregeln | wie Hauptsitzung |
+
 ### Sichtbarkeit der Steuerung
 - Kleine, thematisch saubere Commits (ohne KI-Trailer; Transparenz über die Doku).
 - `docs/02-ki-arbeitsweise.md`: **echte** Momente, in denen die KI korrigiert wurde, laufend notiert. Beispiele aus der Planung: Codex-Entwurf (Achsen vermischt, Video, LLM-Pluspunkt), Review-Agent (Undo-Semantik, Vorschicht-Regel, unbelegte Behauptung „überfällig“).
