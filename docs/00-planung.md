@@ -92,11 +92,13 @@ Er beantwortet: *Wer braucht jetzt meine Aufmerksamkeit, und warum?*
 ### Dashboard (von oben nach unten)
 1. **Kopfbereich:** Ahorn · Frühdienst · 07:15 · noch 6:45 h.
 2. **Kennzahlen-Zeile** (antippbar als Filter): `2 dringend · 7 zeitnah · 2 aus Nachtdienst · 2× Luma nicht erreicht`.
+   **Schicht-Zeitleiste** (ergänzt nach dem Zielbild, `docs/zielbild/zielbild.html`): zwei Spuren (Luma-Hinweise, heute gültige Routinen), 20:00 des Vortags bis Schichtende, Nacht gestaucht, Jetzt-Marker. Einzelne Marker sind nicht antippbar (zu dicht für 48 dp); die ganze Leiste ist ein Tap-Ziel und öffnet den **Schichtverlauf** (chronologische Liste, gruppiert nach Frühdienst und Vorschicht). Vergangene Routinen sind neutral „geplant“.
 3. **Jetzt handeln:** Personen mit offenem `urgent`.
 4. **Demnächst** (nächste 60 min): Routinen und Aktivitäten, Konflikte markiert (z. B. Hörgeräte 07:30).
 5. **Zeitnah prüfen:** Personen mit `attention` als höchster offener Dringlichkeit.
 6. **Organisatorisches:** Personen nur mit offenen `info`-Events, kompakt.
-7. **Leerer Zustand** „Alles erledigt“ erscheint **nur nach** dem Laden, nie während des Imports.
+7. **Leerer Zustand** „Alles erledigt“ erscheint **nur nach** dem Laden, nie während des Imports. Zeitleiste und „In dieser Schicht erledigt“ bleiben darunter sichtbar.
+8. **Fehlerzustand,** falls der Import scheitert: „Daten konnten nicht geladen werden“ mit „Erneut versuchen“.
 
 **Tablet (Expanded, ≥ 840 dp):** Dashboard links, Detail der gewählten Person rechts (List-Detail).
 Phone und kleine Fenster: eine Spalte, Detail als eigener Screen.
@@ -116,12 +118,14 @@ Siehe Designsystem (§7). Kurz: eine Hand, Aktionen unten, 48 dp, Farbe nie alle
 ## 5. Kern-Flow: Anliegen übernehmen → bearbeiten → abschließen
 
 ```
-Dashboard ─tap Person─▶ Detail (Person, Hinweise, Kontext, Verlauf)
+Dashboard ─tap Person─▶ Detail (Person, Hinweise, Kontext, Personenverlauf)
   [Übernehmen]               [Übernehmen] / [Übernahme bestätigen] (Vorschicht)
                              [Notiz]  Textbausteine-Chips + optional Freitext
                              [Abschließen ▾] Erledigt | Weitergeleitet an … | Kein Handlungsbedarf
 ◀── reaktiv aktualisiert ── Snackbar „Rückgängig“
 ```
+
+Übernahme gilt **pro Hinweis** (Status und Verlauf liegen pro Event). „Abschließen“ erscheint erst nach der Übernahme.
 
 **Übergänge**
 | Von → Nach | Regel |
