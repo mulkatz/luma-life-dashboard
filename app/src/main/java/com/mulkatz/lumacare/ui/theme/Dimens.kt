@@ -28,4 +28,41 @@ object LumaSizes {
 
     /** Icon in leeren Zuständen und Fehlerzustand. */
     val iconLarge: Dp = 48.dp
+
+    /** Mindesthöhe der Appbar auf Unterseiten (Schichtverlauf). */
+    val appBarMinHeight: Dp = 56.dp
+
+    /** Spalte für die Uhrzeit in Verlaufslisten. */
+    val timeColumnMinWidth: Dp = 56.dp
+
+    // ---------- Schichtverlauf (Stundenblöcke) ----------
+
+    /** Mindestbreite eines Stundenblocks. */
+    val hourBlockMinWidth: Dp = 36.dp
+
+    /** Höhe eines Stundenblocks; wächst bei großer Schrift. */
+    val hourBlockHeight: Dp = 52.dp
+
+    /** Abstand zwischen zwei Stundenblöcken. */
+    val hourBlockGap: Dp = 2.dp
+
+    /** Strichlänge und Lücke des gestrichelten Rands zukünftiger Stunden. */
+    val dash: Dp = 4.dp
+
+    /** Fläche unter dem Block für Routine-Ticks. */
+    val tickAreaHeight: Dp = 14.dp
+
+    /** Routine-Tick: Abstand oben, Länge und Breite. */
+    val tickTop: Dp = 3.dp
+    val tickLength: Dp = 10.dp
+    val tickWidth: Dp = 2.dp
+
+    /** Jetzt-Marker: Linienbreite, Überstand über den Block und Durchmesser des Punkts. */
+    val nowMarkerWidth: Dp = 2.dp
+    val nowMarkerOverhang: Dp = 6.dp
+    val nowMarkerDot: Dp = 8.dp
+
+    /** Legende im Schichtverlauf: Beispielblock links. */
+    val legendSwatchWidth: Dp = 44.dp
+    val legendSwatchHeight: Dp = 36.dp
 }

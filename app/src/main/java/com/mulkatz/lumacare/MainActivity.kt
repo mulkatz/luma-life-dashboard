@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.mulkatz.lumacare.ui.dashboard.DashboardRoute
+import com.mulkatz.lumacare.ui.LumaApp
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 
 class MainActivity : ComponentActivity() {
@@ -16,8 +16,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             LumaTheme {
-                // B1: Personen-Navigation folgt mit dem Scaffold in B3.
-                DashboardRoute(onPersonClick = {})
+                LumaApp()
             }
         }
     }

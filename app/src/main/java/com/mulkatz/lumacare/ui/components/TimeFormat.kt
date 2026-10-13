@@ -13,10 +13,14 @@ import java.time.temporal.ChronoUnit
  */
 object TimeFormat {
     private val CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val HOUR: DateTimeFormatter = DateTimeFormatter.ofPattern("HH")
     private val DATE_CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM. HH:mm")
 
     /** „07:15“ */
     fun clock(time: LocalDateTime): String = time.format(CLOCK)
+
+    /** Stundenlabel: „07“ */
+    fun hour(time: LocalDateTime): String = time.format(HOUR)
 
     /** Uhrzeit relativ zum Tag von [now]: „06:30“, „gestern 23:15“, sonst „10.10. 23:15“. */
     fun clockLabel(res: Resources, time: LocalDateTime, now: LocalDateTime): String =

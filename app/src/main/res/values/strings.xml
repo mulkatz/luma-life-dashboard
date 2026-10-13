@@ -72,6 +72,29 @@
     <string name="upcoming_activity_meta">%1$s · Aktivität</string>
     <string name="upcoming_open_hint">Offener Hinweis bei %1$s</string>
 
+    <!-- Schichtverlauf: Karte und Screen -->
+    <string name="shift_history_title">Schichtverlauf</string>
+    <string name="action_back">Zurück</string>
+    <string name="shift_timeline_description">%1$s, %2$s, %3$s</string>
+    <plurals name="shift_timeline_urgent">
+        <item quantity="one">%d dringender Hinweis</item>
+        <item quantity="other">%d dringende Hinweise</item>
+    </plurals>
+    <string name="shift_timeline_no_urgent">keine dringenden Hinweise</string>
+    <string name="shift_timeline_next_routine">nächste Routine %1$s %2$s</string>
+    <string name="shift_timeline_no_routine">keine weitere Routine in dieser Schicht</string>
+    <string name="shift_history_now">Jetzt · %1$s</string>
+    <string name="shift_history_group_current">%1$s · ab %2$s</string>
+    <string name="shift_history_group_previous">Vorschicht · %1$s bis %2$s</string>
+    <string name="shift_history_routine">Routine · geplant</string>
+    <string name="status_done">Erledigt</string>
+    <string name="legend_blocks">Ein Block je Stunde, die Nacht (20:00–06:00) als ein Block mit Mond. Die Zahl zählt alle Hinweise der Stunde, auch erledigte.</string>
+    <string name="legend_severity">Farbe und Icon zeigen die höchste offene Dringlichkeit: Dringend, Zeitnah oder Info.</string>
+    <string name="legend_done">Grau ohne Icon: keine offenen Hinweise in dieser Stunde.</string>
+    <string name="legend_future">Gestrichelt: Die Stunde liegt noch vor dir.</string>
+    <string name="legend_routine">Strich unter dem Block: Routine, die heute gilt (geplant).</string>
+    <string name="legend_now">Punkt und Strich: jetzt.</string>
+
     <!-- Zeiten -->
     <string name="time_just_now">gerade eben</string>
     <plurals name="time_minutes_ago">

@@ -87,7 +87,7 @@ class DashboardScreenTest {
         val factory = viewModelFactory { initializer { DashboardViewModel(repository, loadClock = { clock }) } }
         val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
         compose.setContent {
-            LumaTheme(darkTheme = false) { DashboardRoute(onPersonClick = { clicked += it }, viewModel = viewModel) }
+            LumaTheme(darkTheme = false) { DashboardRoute(onPersonClick = { clicked += it }, onTimelineClick = {}, viewModel = viewModel) }
         }
     }
 
@@ -180,6 +180,16 @@ class DashboardScreenTest {
 
         compose.onNodeWithText("Alles erledigt").assertExists()
         compose.onNodeWithTag("section_now").assertDoesNotExist()
+    }
+
+    @Test
+    fun `im leeren zustand steht der schichtverlauf unter alles erledigt`() {
+        show(EmptyRepository())
+        awaitTag("empty_state")
+
+        val empty = compose.onNodeWithTag("empty_state").getUnclippedBoundsInRoot()
+        val timeline = compose.onNodeWithTag("shift_timeline").getUnclippedBoundsInRoot()
+        assertTrue(empty.bottom <= timeline.top, "Schichtverlauf beginnt bei ${timeline.top}, leerer Zustand endet bei ${empty.bottom}")
     }
 
     @Test

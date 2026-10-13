@@ -69,6 +69,7 @@ import com.mulkatz.lumacare.domain.UpcomingItem
 import com.mulkatz.lumacare.ui.components.EmptyState
 import com.mulkatz.lumacare.ui.components.PersonCard
 import com.mulkatz.lumacare.ui.components.ShiftHeader
+import com.mulkatz.lumacare.ui.components.ShiftTimeline
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.iconRes
@@ -84,6 +85,7 @@ import java.time.LocalDateTime
 @Composable
 fun DashboardRoute(
     onPersonClick: (String) -> Unit,
+    onTimelineClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
@@ -94,19 +96,22 @@ fun DashboardRoute(
         state = state,
         onRetry = viewModel::retry,
         onPersonClick = onPersonClick,
+        onTimelineClick = onTimelineClick,
         modifier = modifier,
     )
 }
 
 /**
- * Dashboard ohne eigenen Zustand. Reihenfolge: Jetzt handeln, Demnächst, Zeitnah prüfen, Organisatorisches.
- * Abschnitte ohne Einträge entfallen. „Alles erledigt“ erscheint nur in [DashboardUiState.Ready].
+ * Dashboard ohne eigenen Zustand. Reihenfolge: Jetzt handeln, Demnächst, Schichtverlauf, Zeitnah prüfen,
+ * Organisatorisches. Abschnitte ohne Einträge entfallen; der Schichtverlauf steht immer da, auch unter
+ * „Alles erledigt“. „Alles erledigt“ erscheint nur in [DashboardUiState.Ready].
  */
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
     onRetry: () -> Unit,
     onPersonClick: (String) -> Unit,
+    onTimelineClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -119,7 +124,7 @@ fun DashboardScreen(
         when (state) {
             DashboardUiState.Loading -> LoadingContent(innerPadding)
             DashboardUiState.Error -> ErrorContent(innerPadding, onRetry)
-            is DashboardUiState.Ready -> ReadyContent(state, innerPadding, onPersonClick)
+            is DashboardUiState.Ready -> ReadyContent(state, innerPadding, onPersonClick, onTimelineClick)
         }
     }
 }
@@ -139,7 +144,7 @@ private fun ReadyHeader(state: DashboardUiState.Ready) {
 }
 
 @get:StringRes
-private val ShiftType.labelRes: Int
+internal val ShiftType.labelRes: Int
     get() = when (this) {
         ShiftType.EARLY -> R.string.shift_early
         ShiftType.NIGHT -> R.string.shift_night
@@ -270,6 +275,7 @@ private fun ReadyContent(
     state: DashboardUiState.Ready,
     innerPadding: PaddingValues,
     onPersonClick: (String) -> Unit,
+    onTimelineClick: () -> Unit,
 ) {
     val model = state.model
     val layoutDirection = LocalLayoutDirection.current
@@ -305,7 +311,14 @@ private fun ReadyContent(
         if (model.upcoming.isNotEmpty()) {
             item(key = "section_soon") { UpcomingSection(model.upcoming, model.now, onPersonClick) }
         }
-        // B2: Schichtverlauf (Zeitleiste) folgt hier.
+        item(key = "shift_timeline") {
+            ShiftTimeline(
+                hours = model.hours,
+                summary = model.timeline.summary,
+                onClick = onTimelineClick,
+                modifier = Modifier.contentWidth(),
+            )
+        }
         if (model.checkSoon.isNotEmpty()) {
             item(key = "section_attention") {
                 PersonSection(
@@ -614,59 +627,59 @@ private fun ListCard(content: @Composable () -> Unit) {
 @Preview(name = "Ready · Light", heightDp = 1600)
 @Composable
 private fun DashboardReadyPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Ready · Dark", heightDp = 1600)
 @Composable
 private fun DashboardReadyDarkPreview() {
-    LumaTheme(darkTheme = true) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = true) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Ready · Schrift 200 %", heightDp = 1600, fontScale = 2f)
 @Composable
 private fun DashboardReadyLargeFontPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Ready · Tablet", device = Devices.TABLET)
 @Composable
 private fun DashboardReadyTabletPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.ready, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Leer · Light")
 @Composable
 private fun DashboardEmptyPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.empty, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardPreviewData.empty, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Leer · Dark")
 @Composable
 private fun DashboardEmptyDarkPreview() {
-    LumaTheme(darkTheme = true) { DashboardScreen(DashboardPreviewData.empty, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = true) { DashboardScreen(DashboardPreviewData.empty, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Fehler · Light")
 @Composable
 private fun DashboardErrorPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardUiState.Error, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardUiState.Error, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Fehler · Dark")
 @Composable
 private fun DashboardErrorDarkPreview() {
-    LumaTheme(darkTheme = true) { DashboardScreen(DashboardUiState.Error, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = true) { DashboardScreen(DashboardUiState.Error, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Laden · Light")
 @Composable
 private fun DashboardLoadingPreview() {
-    LumaTheme(darkTheme = false) { DashboardScreen(DashboardUiState.Loading, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = false) { DashboardScreen(DashboardUiState.Loading, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }
 
 @Preview(name = "Laden · Dark")
 @Composable
 private fun DashboardLoadingDarkPreview() {
-    LumaTheme(darkTheme = true) { DashboardScreen(DashboardUiState.Loading, onRetry = {}, onPersonClick = {}) }
+    LumaTheme(darkTheme = true) { DashboardScreen(DashboardUiState.Loading, onRetry = {}, onPersonClick = {}, onTimelineClick = {}) }
 }

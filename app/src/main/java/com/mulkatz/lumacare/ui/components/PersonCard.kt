@@ -193,9 +193,15 @@ fun PersonCard(
 /** Hinweistext auf der Karte bei Schrift ≤ 100 %; darüber unbegrenzt. */
 private const val SUMMARY_MAX_LINES = 3
 
-/** Herkunft „Aus Nachtdienst“ nur, wenn der Nachtdienst den Hinweis nachweislich bearbeitet. */
+/**
+ * Herkunft „Aus Nachtdienst“ nur, wenn der Nachtdienst den Hinweis nachweislich bearbeitet: Vorschicht
+ * ([Handling.PREVIOUS_SHIFT]) und dem Nachtdienst zugeordnet. Einzige Stelle dieser Regel (Karte und Verlauf).
+ */
+fun isFromNightShift(event: LumaEvent, handling: Handling): Boolean =
+    handling == Handling.PREVIOUS_SHIFT && event.assignedTo == ShiftType.NIGHT
+
 private val EventEntry.fromNightShift: Boolean
-    get() = handling == Handling.PREVIOUS_SHIFT && event.assignedTo == ShiftType.NIGHT
+    get() = isFromNightShift(event, handling)
 
 /** Metazeile des Hinweises: „vor 45 Min. · 06:30“ bzw. „Aus Nachtdienst · gestern 23:15“. */
 @Composable
