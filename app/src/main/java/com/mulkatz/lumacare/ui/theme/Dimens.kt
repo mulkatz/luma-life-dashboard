@@ -35,6 +35,12 @@ object LumaSizes {
     /** Icon in leeren Zuständen und Fehlerzustand. */
     val iconLarge: Dp = 48.dp
 
+    /** Mindesthöhe einer Auswahlzeile im Abschluss-Sheet (große Radio-Zeilen). */
+    val optionRowMinHeight: Dp = 56.dp
+
+    /** Platz, den die Snackbar über der Aktionsleiste im Detail freihält. */
+    val actionBarReserve: Dp = 80.dp
+
     /** Mindesthöhe der Appbar auf Unterseiten (Schichtverlauf). */
     val appBarMinHeight: Dp = 56.dp
 
