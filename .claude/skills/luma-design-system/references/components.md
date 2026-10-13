@@ -13,7 +13,10 @@ Nach `currentWindowAdaptiveInfo().windowSizeClass`, nie nach Gerätetyp oder Aus
 | ≥ 840 dp | Expanded (Tablet) | List-Detail: Dashboard links (360–420 dp), Detail rechts. Auswahl hervorgehoben, Detail-Aktionen unten im Detailbereich |
 
 - `NavigableListDetailPaneScaffold` (material3-adaptive) übernimmt Spalten und Zurück-Navigation.
-- Gewählte Person im `SavedStateHandle`, überlebt Rotation und Größenwechsel.
+- Gewählte Person im speicherbaren Zustand des Navigators (Key `person:<id>` bzw. `shift_history`),
+  überlebt Rotation, Größenwechsel und Prozess-Tod. Zurück: einspaltig Person → Verlauf → Dashboard,
+  zweispaltig verlässt Zurück die App (kein Durchblättern früherer Auswahlen).
+- Insets einheitlich über `WindowInsets.safeDrawing` (inkl. Titelleiste im Desktop-Fenster), nie nur `statusBars`.
 - Expanded ohne Auswahl: Detailbereich zeigt `EmptyState` „Wähle links eine Person aus.“
 - Keine feste Ausrichtung im Manifest. Text und Karten max. ca. 640 dp breit.
 
@@ -79,6 +82,11 @@ Keine Legende auf dem Dashboard. Der Jetzt-Marker liegt hinter den Kacheln (nur 
 in der Tick-Fläche sichtbar), nie über Zahl oder Icon. Semantik am klickbaren Knoten: eine Zusammenfassung
 plus `Role.Button`, z. B. „Schichtverlauf, 2 dringende Hinweise, nächste Routine 07:30 Hörgeräte einsetzen“.
 
+## SubpageAppBar
+
+Appbar für Detail und Schichtverlauf: Fläche `secondary`/`onSecondary`, Zurück 48 dp („Zurück“), Titel optional.
+Im zweispaltigen Detail ohne Zurück, nur als Abstand unter `safeDrawing`.
+
 ## ShiftHistory (`shift_history`)
 
 Eigener Screen, Appbar als `secondary`-Fläche wie der ShiftHeader (Zurück 48 dp). Oben die Blockreihe mit
@@ -94,7 +102,8 @@ Neutral (`surface` + `outline`-Rand), Icon optional, `labelLarge` (14 sp). Nur F
 
 ## EventItem
 
-Kopfzeile: „Luma-Hinweis · Gespräch 06:30 · vor 45 Min.“ (`bodyMedium`, muted).
+Kopfzeile: „Luma-Hinweis · Gespräch 06:30 · vor 45 Min.“ (`bodyMedium`, muted). Quelle nach Typ:
+`missed_call` → „Anruf“, `family_message` → „Nachricht“, sonst „Gespräch“.
 Inhalt: Originalaussage (`bodyLarge`). Rechts: Bearbeitungsstand. Keine Interpretation.
 
 ## BottomActionBar (`action_bar`)
