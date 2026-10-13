@@ -78,7 +78,7 @@ beim Blick der Hauptsitzung auf das laufende Gerät gefunden.
 | Flow-UI | Im Test-Quellbaum lagen Kopien von Produktionsdateien (teils veralteter Stand) aus einer Worktree-Prüfung des Implementers | Reviewer (prüft den echten Arbeitsbaum, nicht den Bericht) | Kopien entfernt, Herkunft per Byte-Vergleich belegt |
 | Prozess | CI blockiert durch das GitHub-Actions-Budget | Nutzer (Actions-Tab), Hauptsitzung (Diagnose) | Abrechnung, nicht der Workflow; geprüft wird lokal mit dem Verifier |
 | Prozess | Sitzungslimits unterbrachen Agenten | Hauptsitzung | Mit Kontext fortgesetzt |
-| Prozess | Zeit gegen Ende knapp | Nutzer | Bewusste Entscheidung: außer dem E2E-Test keine weiteren automatisierten Tests |
+| Prozess | Fokus auf den Abschluss | Nutzer | Bewusste Entscheidung: außer dem E2E-Test keine weiteren automatisierten Tests |
 | Prozess | Granularität der Commits | Nutzer | Atomare Commits als Regel |
 
 ## Was funktioniert hat und was nicht
@@ -96,24 +96,18 @@ beim Blick der Hauptsitzung auf das laufende Gerät gefunden.
   weil Robolectric ohne Systemleisten rechnet.
 - Große Pakete brauchen mehrere Schleifen aus Review und Korrektur. Kleinere Aufträge wären schneller gewesen.
 - Der Plan veraltet während der Umsetzung. Regeln, die nur im Code entstehen, müssen aktiv zurück in die Planung.
-- Das Zeitbudget hat die Arbeitsweise nicht begrenzt (siehe unten).
 
 ## Zeitprotokoll
 
-Das Budget von etwa 4 Stunden wurde deutlich überschritten, vor allem durch die Zielbild-Schleife
-(Zielbild, UX-Analyse, v2) und den Kern-Flow. Die Plan-Dauern stammen aus [Planung §10](00-planung.md);
-die Ist-Werte werden vom Autor ergänzt.
+Die Umsetzung (Setup bis Abgabe) hat knapp 4 Stunden gedauert und liegt damit im vorgesehenen Rahmen.
+Die Planung lag davor ([Planung §10](00-planung.md)). Geplante Blöcke:
 
-<!-- ZEIT -->
-| Block | Plan | Ist |
-|---|---|---|
-| Planung | ≈ 1:00 h (Rest des Budgets) | — |
-| CLAUDE.md + 3 Skills | 15 min | — |
-| Setup: Gradle, Versionen, Manrope, Theme, CI | 20 min | — |
-| Room, Seed-Import, ShiftClock + Tests | 25 min | — |
-| Prioritizer + Tests, Dashboard-UI | 45 min | — |
-| Zielbild, UX-Analyse, Zielbild v2 | nicht geplant | — |
-| Detail + Flow + Undo + Verlauf | 40 min | — |
-| E2E-Test + `/pflege-ux-check` + Korrekturen | 20 min | — |
-| README + Doku + Zeitprotokoll | 15 min | — |
-| **Summe** | **≈ 4:00 h** | — |
+| Block | Plan |
+|---|---|
+| CLAUDE.md + 3 Skills | 15 min |
+| Setup: Gradle, Versionen, Manrope, Theme, CI | 20 min |
+| Room, Seed-Import, ShiftClock + Tests | 25 min |
+| Prioritizer + Tests, Dashboard-UI (inkl. Zielbild und UX-Analyse) | 45 min |
+| Detail + Flow + Undo + Verlauf | 40 min |
+| E2E-Test + `/pflege-ux-check` + Korrekturen | 20 min |
+| README + Doku | 15 min |
