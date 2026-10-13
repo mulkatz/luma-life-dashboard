@@ -21,6 +21,8 @@ import java.time.LocalTime
  * - **Demnächst:** Routinetermine (Wochentag passend) und Aktivitäten im Fenster [now, now+60 min].
  *   Hat die Person der Routine bzw. eine angemeldete Person offene Hinweise, wird je Person deren
  *   maßgeblicher Hinweis verknüpft ([UpcomingItem.openHints]). Keine Bewertung als Konflikt.
+ * - **Kontext-Chips** in fester Reihenfolge (einzige Quelle, die UI sortiert nicht neu): Gesundheit,
+ *   Routine ±60 min, „Luma nicht erreicht“, Aktivität in der Schicht, zuletzt die Anzahl weiterer Hinweise.
  * - **Kennzahlen** zählen einheitlich Personen: in „Jetzt handeln“, in „Zeitnah prüfen“, mit
  *   Vorschicht-Hinweis ohne Übernahme, mit offenem `missed_call`.
  * - **Zeitleiste:** Fenster [20:00 des Vortags, Schichtende), ausgelegt auf den Frühdienst.
@@ -120,14 +122,14 @@ object Prioritizer {
             .sortedWith(compareBy({ it.time }, { it.routine.id }))
             .forEach(::add)
 
+        if (openEvents.any { it.type == EventType.MISSED_CALL }) add(ContextChip.LumaNotReached)
+
         data.activities
             .filter { resident.id in it.registered && it.start.isWithin(now, shift.end) && !it.start.isBefore(shift.start) }
             .sortedWith(compareBy({ it.start }, { it.id }))
             .forEach { add(ContextChip.ActivityAhead(it)) }
 
         if (openEvents.size > 1) add(ContextChip.FurtherEvents(openEvents.size - 1))
-
-        if (openEvents.any { it.type == EventType.MISSED_CALL }) add(ContextChip.LumaNotReached)
     }
 
     private fun upcoming(

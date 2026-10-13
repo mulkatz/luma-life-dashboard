@@ -170,7 +170,7 @@ class PrioritizerTest {
     }
 
     @Test
-    fun `kontext-chips kommen nur aus den daten`() {
+    fun `kontext-chips kommen nur aus den daten, in fester priorität`() {
         val sitzgymnastik = activity("a1", at("10:30"), listOf("a"))
         val model = build(
             residents = listOf(resident("a", healthNotes = listOf("Diabetes Typ 2, achtet auf Zucker"))),
@@ -199,9 +199,9 @@ class PrioritizerTest {
                 ContextChip.HealthNote("Diabetes Typ 2, achtet auf Zucker"),
                 ContextChip.RoutineNearby(routine("rt1", "a", "06:15"), at("06:15")),
                 ContextChip.RoutineNearby(routine("rt2", "a", "08:15"), at("08:15")),
+                ContextChip.LumaNotReached,
                 ContextChip.ActivityAhead(sitzgymnastik),
                 ContextChip.FurtherEvents(2),
-                ContextChip.LumaNotReached,
             ),
             model.actNow.single().context,
         )
