@@ -10,6 +10,7 @@ import com.mulkatz.lumacare.domain.AppStateStore
 import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.EventType
 import com.mulkatz.lumacare.domain.Severity
+import com.mulkatz.lumacare.domain.Shift
 import com.mulkatz.lumacare.domain.ShiftType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -149,6 +150,13 @@ class SeedImporter(
 
         /** Präferenzen, die mit einem dieser Begriffe beginnen, sind Gesundheitsangaben. */
         val HEALTH_NOTE_PREFIXES = listOf("Diabetes Typ 2")
+
+        fun mapShift(meta: SeedMeta): Shift = Shift(
+            type = mapShiftType(meta.shift.type),
+            start = parseDateTime(meta.shift.start, "meta.shift.start"),
+            end = parseDateTime(meta.shift.end, "meta.shift.end"),
+            unit = meta.unit,
+        )
 
         fun mapShiftType(value: String): ShiftType = when (value) {
             "early" -> ShiftType.EARLY

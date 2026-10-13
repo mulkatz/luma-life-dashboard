@@ -15,15 +15,19 @@ import kotlin.test.assertTrue
 
 class ShiftClockTest {
     private val seedNow = LocalDateTime.parse("2026-10-12T07:15:00")
-    private val shiftStart = LocalDateTime.parse("2026-10-12T06:00:00")
-    private val shiftEnd = LocalDateTime.parse("2026-10-12T14:00:00")
+    private val shift = Shift(
+        type = ShiftType.EARLY,
+        start = LocalDateTime.parse("2026-10-12T06:00:00"),
+        end = LocalDateTime.parse("2026-10-12T14:00:00"),
+        unit = "Wohnbereich 2 – Ahorn",
+    )
     private val base = 1_800_000_000_000L
 
     private var systemTime = base
     private val store = InMemoryAppStateStore()
 
     private fun clock(currentTimeMillis: () -> Long = { systemTime }) =
-        ShiftClock(seedNow, shiftStart, shiftEnd, store, currentTimeMillis)
+        ShiftClock(seedNow, shift, store, currentTimeMillis)
 
     @Test
     fun `beim anker gilt seed-zeit und der anker wird sofort gespeichert`() {

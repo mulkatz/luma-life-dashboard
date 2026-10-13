@@ -4,13 +4,18 @@ import android.content.Context
 import androidx.room.Room
 import com.mulkatz.lumacare.data.local.LumaDatabase
 import com.mulkatz.lumacare.data.local.SharedPreferencesAppStateStore
+import com.mulkatz.lumacare.data.repository.CareRepository
+import com.mulkatz.lumacare.data.repository.RoomCareRepository
 import com.mulkatz.lumacare.data.seed.SeedImporter
 import com.mulkatz.lumacare.data.seed.SeedMeta
 import com.mulkatz.lumacare.data.seed.SeedParser
 import com.mulkatz.lumacare.domain.AppStateStore
 import com.mulkatz.lumacare.domain.ShiftClock
 
-/** Manuelle DI: Datenbank, Zustandsspeicher, Seed-Import und ShiftClock entstehen bei Bedarf. */
+/**
+ * Manuelle DI: Datenbank, Zustandsspeicher, Seed-Import, Repository und ShiftClock entstehen bei Bedarf.
+ * [seedMeta] und [shiftClock] lesen beim ersten Zugriff von der Platte: nicht auf dem Main-Thread abrufen.
+ */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
@@ -29,11 +34,12 @@ class AppContainer(context: Context) {
 
     val seedImporter: SeedImporter by lazy { SeedImporter(database, stateStore, ::readSeedAsset) }
 
+    val careRepository: CareRepository by lazy { RoomCareRepository(database, seedImporter) }
+
     val shiftClock: ShiftClock by lazy {
         ShiftClock(
             seedNow = SeedImporter.parseDateTime(seedMeta.now, "meta.now"),
-            shiftStart = SeedImporter.parseDateTime(seedMeta.shift.start, "meta.shift.start"),
-            shiftEnd = SeedImporter.parseDateTime(seedMeta.shift.end, "meta.shift.end"),
+            shift = SeedImporter.mapShift(seedMeta),
             anchorStore = stateStore,
             currentTimeMillis = System::currentTimeMillis,
         )

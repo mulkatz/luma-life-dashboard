@@ -15,8 +15,8 @@ import java.time.LocalDateTime
  */
 class ShiftClock(
     private val seedNow: LocalDateTime,
-    val shiftStart: LocalDateTime,
-    val shiftEnd: LocalDateTime,
+    /** Die laufende Schicht; einzige Quelle für Beginn, Ende, Typ und Wohnbereich. */
+    val shift: Shift,
     anchorStore: AppStateStore,
     private val currentTimeMillis: () -> Long,
 ) {
@@ -30,10 +30,10 @@ class ShiftClock(
 
     /** Restzeit bis Schichtende, nie negativ. */
     fun remaining(now: LocalDateTime): Duration =
-        Duration.between(now, shiftEnd).takeUnless { it.isNegative } ?: Duration.ZERO
+        Duration.between(now, shift.end).takeUnless { it.isNegative } ?: Duration.ZERO
 
     /** Ab Schichtende `true`. */
-    fun isShiftOver(now: LocalDateTime): Boolean = !now.isBefore(shiftEnd)
+    fun isShiftOver(now: LocalDateTime): Boolean = !now.isBefore(shift.end)
 
     /** Emittiert sofort [now] und danach an jeder vollen Minute. */
     val ticks: Flow<LocalDateTime> = flow {
