@@ -1,0 +1,24 @@
+# gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# android studio / intellij
+.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# local configuration
+local.properties
+*.keystore
+*.jks
+
+# claude code (personal settings only, skills stay versioned)
+.claude/settings.local.json
+
+# os
+.DS_Store
+Thumbs.db

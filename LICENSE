@@ -1,0 +1,24 @@
+Copyright (c) 2026 Franz Benthin. Alle Rechte vorbehalten.
+
+Dieses Repository ist eine Bewerbungsarbeit (Case Study „Product Builder“) für
+Luma Life. Es ist nicht öffentlich und nicht für den produktiven Einsatz bestimmt.
+
+Nutzungsrecht für Luma Life
+---------------------------
+Luma Life und die am Bewerbungsprozess beteiligten Personen dürfen den Inhalt
+dieses Repositorys zur Bewertung der Bewerbung einsehen, ausführen und intern
+weitergeben. Jede darüber hinausgehende Nutzung, Vervielfältigung, Veränderung
+oder Veröffentlichung bedarf der vorherigen schriftlichen Zustimmung des Autors.
+
+Ausgenommene Inhalte Dritter
+----------------------------
+- docs/case/ (Aufgabenstellung und Seed-Daten): Urheberrecht bei Luma Life.
+  Alle darin enthaltenen Personen- und Gesundheitsdaten sind fiktiv.
+- „Luma“, „Luma Life“ sowie Farben und Gestaltungselemente der Marke gehören
+  Luma Life. Das Logo „Luma Care“ ist ausschließlich für diese Case Study aus
+  der Luma-Bildmarke abgeleitet.
+- Schriftart Manrope: Copyright 2018 The Manrope Project Authors,
+  lizenziert unter der SIL Open Font License 1.1 (https://openfontlicense.org).
+
+DIE SOFTWARE WIRD OHNE MÄNGELGEWÄHR („AS IS“) UND OHNE JEGLICHE GARANTIE
+BEREITGESTELLT.
