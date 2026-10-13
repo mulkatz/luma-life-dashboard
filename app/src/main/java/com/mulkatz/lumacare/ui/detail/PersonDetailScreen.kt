@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -29,8 +30,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,15 +53,34 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
+import com.mulkatz.lumacare.domain.EventCommand
 import com.mulkatz.lumacare.domain.EventEntry
+import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.EventType
+import com.mulkatz.lumacare.domain.Handling
+import com.mulkatz.lumacare.domain.LoggedAction
 import com.mulkatz.lumacare.domain.PersonDetail
 import com.mulkatz.lumacare.domain.PersonHistoryEntry
+import com.mulkatz.lumacare.domain.Resolution
+import com.mulkatz.lumacare.ui.actions.ActionInputState
+import com.mulkatz.lumacare.ui.actions.ActionSheet
+import com.mulkatz.lumacare.ui.actions.InputCheck
+import com.mulkatz.lumacare.ui.actions.PersonActions
+import com.mulkatz.lumacare.ui.actions.PersonActionsViewModel
+import com.mulkatz.lumacare.ui.actions.runAction
+import com.mulkatz.lumacare.ui.components.BottomActionBar
+import com.mulkatz.lumacare.ui.components.EventActionButton
+import com.mulkatz.lumacare.ui.components.NoteSheet
+import com.mulkatz.lumacare.ui.components.ResolutionInput
+import com.mulkatz.lumacare.ui.components.ResolutionSheet
+import com.mulkatz.lumacare.ui.components.SecondaryActionButton
+import com.mulkatz.lumacare.ui.components.SheetSubject
 import com.mulkatz.lumacare.ui.components.SeverityBadge
 import com.mulkatz.lumacare.ui.components.SubpageAppBar
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.iconRes
+import com.mulkatz.lumacare.ui.components.title
 import com.mulkatz.lumacare.ui.components.labelRes
 import com.mulkatz.lumacare.ui.dashboard.DashboardPreviewData
 import com.mulkatz.lumacare.ui.dashboard.DashboardViewModel
@@ -66,7 +88,7 @@ import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 import com.mulkatz.lumacare.ui.theme.tabularNumbers
 
-/** Holt denselben Zustand wie das Dashboard und leitet das Detail der Person daraus ab. */
+/** Holt denselben Zustand wie das Dashboard und leitet das Detail der Person daraus ab; Aktionen über [actions]. */
 @Composable
 fun PersonDetailRoute(
     personId: String,
@@ -75,15 +97,30 @@ fun PersonDetailRoute(
     viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
     ),
+    actions: PersonActionsViewModel = viewModel(
+        factory = PersonActionsViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
+    ),
 ) {
     val dashboardState by viewModel.uiState.collectAsStateWithLifecycle()
     val state = remember(dashboardState, personId) { PersonDetailUiState.from(dashboardState, personId) }
-    PersonDetailScreen(state = state, onBack = onBack, onRetry = viewModel::retry, modifier = modifier)
+    PersonDetailScreen(
+        state = state,
+        onBack = onBack,
+        onRetry = viewModel::retry,
+        modifier = modifier,
+        input = actions.input,
+        actions = actions,
+    )
 }
 
 /**
- * Personendetail ohne eigenen Zustand, nur lesend: Kopf, offene Luma-Hinweise, Kontext, Verlauf, darunter ruhig
- * Vorlieben und Biografie. [onBack] `null` heißt Detailbereich auf dem Tablet, ohne Zurück-Appbar.
+ * Personendetail ohne eigenen Zustand: Kopf, offene Luma-Hinweise, Kontext, Verlauf (Hinweise und Aktionen der
+ * Pflege), darunter ruhig Vorlieben und Biografie. [onBack] `null` heißt Detailbereich auf dem Tablet, ohne
+ * Zurück-Appbar.
+ *
+ * Aktionen: Die Leiste unten gilt dem maßgeblichen Hinweis (primär je nach Zustand, sekundär „Notiz“). Weitere
+ * Hinweise haben ihre Aktion umrandet in der eigenen Karte; eigene Fälle zusätzlich „Zurückgeben“ als
+ * Textaktion. Abschließen und Notiz laufen über Sheets, deren Eingabe in [input] liegt.
  */
 @Composable
 fun PersonDetailScreen(
@@ -91,12 +128,16 @@ fun PersonDetailScreen(
     onBack: (() -> Unit)?,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    input: ActionInputState = ActionInputState(),
+    actions: PersonActions = PersonActions.None,
 ) {
+    val lead = (state as? PersonDetailUiState.Ready)?.detail?.hints?.firstOrNull()
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = { SubpageAppBar(title = null, onBack = onBack) },
+        bottomBar = { if (lead != null) DetailActionBar(lead, input, actions) },
     ) { innerPadding ->
         when (state) {
             PersonDetailUiState.Loading -> CenteredMessage(innerPadding) {
@@ -127,7 +168,87 @@ fun PersonDetailScreen(
                     textAlign = TextAlign.Center,
                 )
             }
-            is PersonDetailUiState.Ready -> DetailContent(state.detail, innerPadding)
+            is PersonDetailUiState.Ready -> DetailContent(state.detail, innerPadding, input, actions)
+        }
+    }
+    if (state is PersonDetailUiState.Ready) ActionSheets(state, input, actions)
+}
+
+/** Aktionen des maßgeblichen Hinweises; gesperrt, solange zu ihm gespeichert wird. */
+@Composable
+private fun DetailActionBar(lead: EventEntry, input: ActionInputState, actions: PersonActions) {
+    val busy = input.isBusy(lead.event.id)
+    BottomActionBar(
+        primary = { modifier ->
+            EventActionButton(
+                action = lead.action,
+                onClick = { actions.runAction(lead) },
+                modifier = modifier,
+                enabled = !busy,
+                outlined = false,
+            )
+        },
+        secondary = {
+            SecondaryActionButton(
+                text = stringResource(R.string.action_note),
+                onClick = { actions.openNote(lead.event.id) },
+                testTag = "action_note",
+                icon = R.drawable.ic_note,
+                enabled = !busy,
+            )
+        },
+    )
+}
+
+/** Abschluss- bzw. Notiz-Sheet, wenn es einem offenen Hinweis dieser Person gilt. */
+@Composable
+private fun ActionSheets(state: PersonDetailUiState.Ready, input: ActionInputState, actions: PersonActions) {
+    val sheet = input.sheet ?: return
+    val event = state.detail.hints.firstOrNull { it.event.id == sheet.eventId }?.event ?: return
+    val resident = state.detail.resident
+    val subject = SheetSubject(stringResource(R.string.name_and_room, resident.fullName, resident.room), event.summary)
+    val draft = input.draft(event.id)
+    val busy = input.isBusy(event.id)
+    when (sheet) {
+        is ActionSheet.Resolve -> {
+            // Nur erlaubte Abschlussarten; eine nicht (mehr) erlaubte Wahl fällt auf die erste erlaubte zurück.
+            val options = InputCheck.resolutionOptions(event, state.shift)
+            val chosen = input.resolution?.takeIf { it in options } ?: options.firstOrNull() ?: return
+            val command = input.resolveCommand(event.id).let {
+                it.copy(resolution = chosen, forwardedTo = input.forwardTarget.takeIf { chosen == Resolution.FORWARDED })
+            }
+            val check = InputCheck.resolve(event, state.shift, command)
+            ResolutionSheet(
+                subject = subject,
+                options = options,
+                input = ResolutionInput(
+                    resolution = command.resolution,
+                    forwardTarget = input.forwardTarget,
+                    note = draft,
+                    noteRequired = check.noteRequired,
+                    showNoteError = input.noteRejected || check.noteInvalid,
+                    confirmEnabled = check.valid && !busy,
+                ),
+                onResolutionChange = actions::selectResolution,
+                onForwardTargetChange = actions::selectForwardTarget,
+                onNoteChange = { actions.updateDraft(event.id, it) },
+                onSnippet = { actions.insertSnippet(event.id, it) },
+                onConfirm = { actions.perform(event, command) },
+                onDismiss = actions::dismissSheet,
+            )
+        }
+        is ActionSheet.Note -> {
+            val check = InputCheck.note(event, state.shift, draft)
+            NoteSheet(
+                subject = subject,
+                note = draft,
+                showNoteError = input.noteRejected || check.noteInvalid,
+                saveEnabled = check.valid && !busy,
+                onNoteChange = { actions.updateDraft(event.id, it) },
+                onSnippet = { actions.insertSnippet(event.id, it) },
+                onSave = { actions.saveNote(event) },
+                onDismiss = actions::dismissSheet,
+            )
         }
     }
 }
@@ -156,7 +277,12 @@ private fun Modifier.contentWidth(): Modifier =
         .padding(horizontal = LumaTheme.spacing.l)
 
 @Composable
-private fun DetailContent(detail: PersonDetail, innerPadding: PaddingValues) {
+private fun DetailContent(
+    detail: PersonDetail,
+    innerPadding: PaddingValues,
+    input: ActionInputState,
+    actions: PersonActions,
+) {
     val spacing = LumaTheme.spacing
     val layoutDirection = LocalLayoutDirection.current
     // Oben endet die Liste unter der Appbar; unten scrollt der Inhalt unter die Navigationsleiste.
@@ -175,7 +301,7 @@ private fun DetailContent(detail: PersonDetail, innerPadding: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(spacing.xl),
     ) {
         Header(detail)
-        if (detail.hints.isNotEmpty()) HintsSection(detail)
+        if (detail.hints.isNotEmpty()) HintsSection(detail, input, actions)
         ContextSection(detail)
         if (detail.history.isNotEmpty()) HistorySection(detail)
         QuietSection(detail)
@@ -233,20 +359,29 @@ private fun DetailCard(modifier: Modifier = Modifier, content: @Composable () ->
 // ---------- Luma-Hinweise ----------
 
 @Composable
-private fun HintsSection(detail: PersonDetail) {
+private fun HintsSection(detail: PersonDetail, input: ActionInputState, actions: PersonActions) {
     Column(modifier = Modifier.contentWidth()) {
         SectionTitle(stringResource(R.string.detail_section_hints, detail.hints.size))
         Column(verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m)) {
-            detail.hints.forEach { HintCard(it, detail) }
+            detail.hints.forEachIndexed { index, entry ->
+                key(entry.event.id) {
+                    HintCard(entry, detail, isLead = index == 0, busy = input.isBusy(entry.event.id), actions = actions)
+                }
+            }
         }
     }
 }
 
-/** Ein offener Hinweis: Dringlichkeit, Herkunft, Metazeile und die Originalaussage ungekürzt. */
+/**
+ * Ein offener Hinweis: Dringlichkeit, Herkunft bzw. „Bei dir“, Metazeile und die Originalaussage ungekürzt.
+ * Der maßgebliche Hinweis ([isLead]) hat seine Aktion in der Leiste unten, alle anderen umrandet in der Karte.
+ * Eigene Fälle bieten „Zurückgeben“ als Textaktion.
+ */
 @Composable
-private fun HintCard(entry: EventEntry, detail: PersonDetail) {
+private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, busy: Boolean, actions: PersonActions) {
     val res = LocalResources.current
     val event = entry.event
+    val own = entry.handling == Handling.OWN
     val source = stringResource(event.type.sourceRes)
     val meta = stringResource(
         R.string.detail_hint_meta,
@@ -277,6 +412,15 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail) {
                         textColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                if (own) {
+                    Label(
+                        icon = R.drawable.ic_person,
+                        text = stringResource(R.string.handling_own),
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        textColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.testTag("handling_own_${event.id}"),
+                    )
+                }
             }
             Text(
                 text = meta,
@@ -285,6 +429,33 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail) {
             )
             // Hinweis statt Diagnose: Originalaussage unverändert und ungekürzt.
             Text(text = event.summary, style = MaterialTheme.typography.bodyLarge)
+            if (own || !isLead) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (own) {
+                        TextButton(
+                            onClick = { actions.perform(event, EventCommand.Release) },
+                            enabled = !busy,
+                            modifier = Modifier
+                                .heightIn(min = LumaSizes.minTouchTarget)
+                                .testTag("action_release"),
+                        ) {
+                            Text(stringResource(R.string.action_release))
+                        }
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (!isLead) {
+                        EventActionButton(
+                            action = entry.action,
+                            onClick = { actions.runAction(entry) },
+                            enabled = !busy,
+                            outlined = true,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -409,7 +580,8 @@ private fun HistorySection(detail: PersonDetail) {
         DetailCard {
             detail.history.forEachIndexed { index, entry ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                HistoryRow(entry, detail)
+                val action = entry.action
+                if (action != null) ActionHistoryRow(action, detail) else HistoryRow(entry, detail)
             }
         }
     }
@@ -473,9 +645,57 @@ private fun HistoryRow(entry: PersonHistoryEntry, detail: PersonDetail) {
     }
 }
 
+/**
+ * Aktion der Pflege im Verlauf: „Übernommen (Frühdienst)“, „Abgeschlossen: Erledigt“ usw., der zugehörige
+ * Hinweis über seine Uhrzeit und die Notiz ungekürzt. Ohne Namen der Pflege.
+ */
 @Composable
-private fun Label(@DrawableRes icon: Int, text: String, iconTint: Color, textColor: Color) {
+private fun ActionHistoryRow(action: LoggedAction, detail: PersonDetail) {
+    val res = LocalResources.current
+    val note = action.record.note
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
+            .testTag("detail_history_action_${action.record.id}")
+            .padding(LumaTheme.spacing.l),
+        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
+    ) {
+        Text(
+            text = TimeFormat.clockLabel(res, action.time, detail.now),
+            style = MaterialTheme.typography.titleSmall.tabularNumbers(),
+            modifier = Modifier.widthIn(min = LumaSizes.timeColumnMinWidth),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
+        ) {
+            Label(
+                icon = action.iconRes,
+                text = action.title(),
+                iconTint = if (action.after.status == EventStatus.DONE) LumaTheme.status.done.content else MaterialTheme.colorScheme.onSurfaceVariant,
+                textColor = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.history_hint_reference, TimeFormat.clockLabel(res, action.event.timestamp, detail.now)),
+                style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (note != null) Text(text = note, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun Label(
+    @DrawableRes icon: Int,
+    text: String,
+    iconTint: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {

@@ -112,7 +112,9 @@ class PersonDetailFlowTest {
         inDetail("detail_context", "Diabetes Typ 2, achtet auf Zucker").performScrollTo().assertIsDisplayed()
         inDetail("detail_context", "07:00 Blutzucker messen vor dem Frühstück · Luma-Anruf · geplant").assertExists()
         inDetail("detail_context", "Monika Hoffmann, Ehefrau").assertExists()
-        // B3 ist nur lesend: keine Aktionen im Detail.
+        // Die Aktion des maßgeblichen Hinweises steht in der Leiste unten, nicht in seiner Karte.
+        compose.onNode(hasTestTag("action_take_over") and hasAnyAncestor(hasTestTag("action_bar"))).assertIsDisplayed()
+        compose.onNode(hasTestTag("action_note") and hasAnyAncestor(hasTestTag("action_bar"))).assertIsDisplayed()
         compose.onNode(hasTestTag("action_take_over") and hasAnyAncestor(hasTestTag("person_detail"))).assertDoesNotExist()
 
         compose.onNodeWithContentDescription("Zurück").performClick()
@@ -130,16 +132,6 @@ class PersonDetailFlowTest {
 
         awaitTag("shift_header")
         compose.onNodeWithTag("person_detail").assertDoesNotExist()
-    }
-
-    @Test
-    fun `aktion der karte öffnet vorerst das detail`() {
-        show()
-
-        compose.onNode(hasTestTag("action_confirm_handover") and hasAnyAncestor(hasTestTag("person_card_r12"))).performClick()
-        awaitTag("detail_hint_e018")
-
-        headline("Rudolf Schmidt").assertIsDisplayed()
     }
 
     @Test

@@ -87,12 +87,21 @@ class DashboardScreenTest {
     private fun seededRepository(): CareRepository = RoomCareRepository(db, SeedImporter(db, InMemoryAppStateStore()) { seed })
 
     private val clicked = mutableListOf<String>()
+    private val actions = mutableListOf<String>()
 
     private fun show(repository: CareRepository = seededRepository()) {
         val factory = viewModelFactory { initializer { DashboardViewModel(repository, loadClock = { clock }) } }
         val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
         compose.setContent {
-            LumaTheme(darkTheme = false) { DashboardRoute(onPersonClick = { clicked += it }, onTimelineClick = {}, viewModel = viewModel) }
+            LumaTheme(darkTheme = false) {
+                DashboardRoute(
+                    onPersonClick = { clicked += it },
+                    onTimelineClick = {},
+                    onEventAction = { actions += it.event.id },
+                    isBusy = { false },
+                    viewModel = viewModel,
+                )
+            }
         }
     }
 
@@ -143,7 +152,7 @@ class DashboardScreenTest {
     }
 
     @Test
-    fun `karte, aktion und offener hinweis unter demnächst öffnen die person`() {
+    fun `karte und offener hinweis unter demnächst öffnen die person, die aktion gilt dem maßgeblichen hinweis`() {
         show()
         awaitTag("person_card_r04")
 
@@ -151,7 +160,8 @@ class DashboardScreenTest {
         compose.onNode(hasTestTag("action_confirm_handover") and hasAnyAncestor(hasTestTag("person_card_r12"))).performClick()
         compose.onNodeWithTag("open_hint_r09").performScrollTo().performClick()
 
-        assertEquals(listOf("r04", "r12", "r09"), clicked)
+        assertEquals(listOf("r04", "r09"), clicked)
+        assertEquals(listOf("e018"), actions)
     }
 
     @Test

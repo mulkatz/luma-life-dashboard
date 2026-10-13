@@ -63,10 +63,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
 import com.mulkatz.lumacare.domain.EventAction
+import com.mulkatz.lumacare.domain.EventEntry
 import com.mulkatz.lumacare.domain.EventType
 import com.mulkatz.lumacare.domain.LumaEvent
 import com.mulkatz.lumacare.domain.PersonEntry
-import com.mulkatz.lumacare.domain.ShiftType
+import com.mulkatz.lumacare.domain.Resolution
+import com.mulkatz.lumacare.domain.ResolvedEntry
 import com.mulkatz.lumacare.domain.UpcomingItem
 import com.mulkatz.lumacare.ui.components.EmptyState
 import com.mulkatz.lumacare.ui.components.PersonCard
@@ -76,6 +78,7 @@ import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.iconRes
 import com.mulkatz.lumacare.ui.components.labelRes
+import com.mulkatz.lumacare.ui.components.resolutionText
 import com.mulkatz.lumacare.ui.components.shortUnitName
 import com.mulkatz.lumacare.ui.components.testTag
 import com.mulkatz.lumacare.ui.theme.LumaSizes
@@ -88,6 +91,10 @@ import java.time.LocalDateTime
 fun DashboardRoute(
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
+    /** Schnellaktion des maßgeblichen Hinweises einer Karte. */
+    onEventAction: (EventEntry) -> Unit,
+    /** `true`, solange zu diesem Hinweis gespeichert wird. */
+    isBusy: (String) -> Boolean,
     modifier: Modifier = Modifier,
     /** Gewählte Person im List-Detail (Tablet); auf dem Phone `null`. */
     selectedPersonId: String? = null,
@@ -101,6 +108,8 @@ fun DashboardRoute(
         onRetry = viewModel::retry,
         onPersonClick = onPersonClick,
         onTimelineClick = onTimelineClick,
+        onEventAction = onEventAction,
+        isBusy = isBusy,
         modifier = modifier,
         selectedPersonId = selectedPersonId,
     )
@@ -109,7 +118,8 @@ fun DashboardRoute(
 /**
  * Dashboard ohne eigenen Zustand. Reihenfolge: Jetzt handeln, Demnächst, Schichtverlauf, Zeitnah prüfen,
  * Organisatorisches. Abschnitte ohne Einträge entfallen; der Schichtverlauf steht immer da, auch unter
- * „Alles erledigt“. „Alles erledigt“ erscheint nur in [DashboardUiState.Ready].
+ * „Alles erledigt“, darunter dann „In dieser Schicht erledigt“. „Alles erledigt“ erscheint nur in
+ * [DashboardUiState.Ready].
  */
 @Composable
 fun DashboardScreen(
@@ -118,6 +128,8 @@ fun DashboardScreen(
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onEventAction: (EventEntry) -> Unit = {},
+    isBusy: (String) -> Boolean = { false },
     selectedPersonId: String? = null,
 ) {
     Scaffold(
@@ -131,7 +143,14 @@ fun DashboardScreen(
         when (state) {
             DashboardUiState.Loading -> LoadingContent(innerPadding)
             DashboardUiState.Error -> ErrorContent(innerPadding, onRetry)
-            is DashboardUiState.Ready -> ReadyContent(state, innerPadding, selectedPersonId, onPersonClick, onTimelineClick)
+            is DashboardUiState.Ready -> ReadyContent(
+                state = state,
+                innerPadding = innerPadding,
+                selectedPersonId = selectedPersonId,
+                onPersonClick = onPersonClick,
+                onTimelineClick = onTimelineClick,
+                actions = CardActions(onEventAction, isBusy),
+            )
         }
     }
 }
@@ -149,13 +168,6 @@ private fun ReadyHeader(state: DashboardUiState.Ready) {
         remainingSpoken = remainingSpoken,
     )
 }
-
-@get:StringRes
-internal val ShiftType.labelRes: Int
-    get() = when (this) {
-        ShiftType.EARLY -> R.string.shift_early
-        ShiftType.NIGHT -> R.string.shift_night
-    }
 
 /** Aubergine-Fläche hinter der Statusleiste, solange noch keine Schichtdaten da sind. */
 @Composable
@@ -277,6 +289,9 @@ private fun ErrorContent(innerPadding: PaddingValues, onRetry: () -> Unit) {
 
 // ---------- Inhalt ----------
 
+/** Schnellaktion einer Karte und ihre Sperre während des Speicherns. */
+private class CardActions(val onEventAction: (EventEntry) -> Unit, val isBusy: (String) -> Boolean)
+
 @Composable
 private fun ReadyContent(
     state: DashboardUiState.Ready,
@@ -284,6 +299,7 @@ private fun ReadyContent(
     selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
     onTimelineClick: () -> Unit,
+    actions: CardActions,
 ) {
     val model = state.model
     val layoutDirection = LocalLayoutDirection.current
@@ -314,6 +330,7 @@ private fun ReadyContent(
                     highlighted = true,
                     selectedPersonId = selectedPersonId,
                     onPersonClick = onPersonClick,
+                    actions = actions,
                 )
             }
         }
@@ -338,13 +355,17 @@ private fun ReadyContent(
                     highlighted = false,
                     selectedPersonId = selectedPersonId,
                     onPersonClick = onPersonClick,
+                    actions = actions,
                 )
             }
         }
         if (model.organizational.isNotEmpty()) {
             item(key = "section_info") {
-                OrganizationalSection(model.organizational, model.now, selectedPersonId, onPersonClick)
+                OrganizationalSection(model.organizational, model.now, selectedPersonId, onPersonClick, actions)
             }
+        }
+        if (noPersons && model.doneInShift.isNotEmpty()) {
+            item(key = "section_done") { DoneSection(model.doneInShift) }
         }
     }
 }
@@ -361,6 +382,7 @@ private enum class Section(@StringRes val title: Int, @DrawableRes val icon: Int
     SOON(R.string.section_soon, R.drawable.ic_calendar),
     ATTENTION(R.string.section_attention, R.drawable.ic_clock),
     INFO(R.string.section_info, R.drawable.ic_info),
+    DONE(R.string.section_done, R.drawable.ic_check_circle),
 }
 
 @Composable
@@ -370,6 +392,7 @@ private fun SectionHeader(section: Section, count: Int) {
         Section.SOON -> MaterialTheme.colorScheme.onSurfaceVariant
         Section.ATTENTION -> LumaTheme.status.attention.content
         Section.INFO -> LumaTheme.status.info.content
+        Section.DONE -> LumaTheme.status.done.content
     }
     Row(
         modifier = Modifier
@@ -410,6 +433,7 @@ private fun PersonSection(
     highlighted: Boolean,
     selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
+    actions: CardActions,
 ) {
     Column(modifier = Modifier.contentWidth().testTag(tag)) {
         SectionHeader(section, entries.size)
@@ -423,8 +447,8 @@ private fun PersonSection(
                         highlighted = highlighted,
                         selected = id == selectedPersonId,
                         onClick = { onPersonClick(id) },
-                        // B1: Aktion öffnet die Person; Statuswechsel folgt im Flow-Paket.
-                        onAction = { onPersonClick(id) },
+                        onAction = { actions.onEventAction(entry.leadEvent) },
+                        actionEnabled = !actions.isBusy(entry.leadEvent.event.id),
                     )
                 }
             }
@@ -530,6 +554,7 @@ private fun OrganizationalSection(
     now: LocalDateTime,
     selectedPersonId: String?,
     onPersonClick: (String) -> Unit,
+    actions: CardActions,
 ) {
     Column(modifier = Modifier.contentWidth().testTag("section_info")) {
         SectionHeader(Section.INFO, entries.size)
@@ -538,7 +563,14 @@ private fun OrganizationalSection(
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 key(entry.resident.id) {
                     val id = entry.resident.id
-                    OrganizationalRow(entry, now, selected = id == selectedPersonId, onClick = { onPersonClick(id) })
+                    OrganizationalRow(
+                        entry = entry,
+                        now = now,
+                        selected = id == selectedPersonId,
+                        onClick = { onPersonClick(id) },
+                        onAction = { actions.onEventAction(entry.leadEvent) },
+                        actionEnabled = !actions.isBusy(entry.leadEvent.event.id),
+                    )
                 }
             }
         }
@@ -546,7 +578,14 @@ private fun OrganizationalSection(
 }
 
 @Composable
-private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, selected: Boolean, onClick: () -> Unit) {
+private fun OrganizationalRow(
+    entry: PersonEntry,
+    now: LocalDateTime,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onAction: () -> Unit,
+    actionEnabled: Boolean,
+) {
     val res = LocalResources.current
     val lead = entry.leadEvent
     val moreHints = entry.events.size - 1
@@ -600,7 +639,8 @@ private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, selected: 
             }
         }
         TextButton(
-            onClick = onClick,
+            onClick = onAction,
+            enabled = actionEnabled,
             modifier = Modifier
                 .heightIn(min = LumaSizes.minTouchTarget)
                 .testTag(lead.action.testTag),
@@ -616,6 +656,65 @@ private fun OrganizationalRow(entry: PersonEntry, now: LocalDateTime, selected: 
             }
             Text(text = stringResource(lead.action.labelRes))
         }
+    }
+}
+
+// ---------- In dieser Schicht erledigt (nur im leeren Zustand) ----------
+
+@Composable
+private fun DoneSection(entries: List<ResolvedEntry>) {
+    Column(modifier = Modifier.contentWidth().testTag("section_done")) {
+        SectionHeader(Section.DONE, entries.size)
+        ListCard {
+            entries.forEachIndexed { index, entry ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                key(entry.action.record.id) { DoneRow(entry) }
+            }
+        }
+    }
+}
+
+/** „Werner Hoffmann · 2.03“, darunter das Ergebnis („Abgeschlossen: Erledigt · Notiz „…““), rechts die Uhrzeit. */
+@Composable
+private fun DoneRow(entry: ResolvedEntry) {
+    val result = resolutionText(entry.resolution, entry.forwardedTo)
+    val note = entry.note
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = LumaSizes.listRowMinHeight)
+            .semantics(mergeDescendants = true) {}
+            .testTag("done_${entry.event.id}")
+            .padding(horizontal = LumaTheme.spacing.l, vertical = LumaTheme.spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
+    ) {
+        Icon(
+            painter = painterResource(if (entry.resolution == Resolution.FORWARDED) R.drawable.ic_forward else R.drawable.ic_check_circle),
+            contentDescription = null,
+            tint = LumaTheme.status.done.content,
+            modifier = Modifier.size(LumaSizes.iconMedium),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.name_and_room, entry.resident.fullName, entry.resident.room),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = if (note != null) {
+                    stringResource(R.string.hint_meta, result, stringResource(R.string.history_note_quoted, note))
+                } else {
+                    result
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = TimeFormat.clock(entry.time),
+            style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
