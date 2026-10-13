@@ -44,8 +44,8 @@ object LumaSizes {
     /** Mindesthöhe der Appbar auf Unterseiten (Schichtverlauf). */
     val appBarMinHeight: Dp = 56.dp
 
-    /** Spalte für die Uhrzeit in Verlaufslisten. */
-    val timeColumnMinWidth: Dp = 56.dp
+    /** Feste Zeitspalte in Verlaufslisten (bei 100 % Schrift; wächst mit der Schriftgröße). */
+    val timeColumn: Dp = 64.dp
 
     // ---------- Schichtverlauf (Stundenblöcke) ----------
 

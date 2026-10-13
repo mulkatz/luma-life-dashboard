@@ -59,6 +59,7 @@
     <string name="note_label_required">Notiz</string>
     <string name="note_label_optional">Notiz (optional)</string>
     <string name="note_error">Bitte kurz notieren, was du getan hast.</string>
+    <string name="note_required_hint">Pflichtnotiz: kurz notieren, was du getan hast.</string>
     <string name="note_chip_seen">Gesehen, wohlauf</string>
     <string name="note_chip_doctor">Arzt informiert</string>
     <string name="note_chip_measured">Werte gemessen</string>
@@ -149,7 +150,9 @@
     <!-- Personendetail -->
     <string name="list_separator">" · "</string>
     <string name="detail_room_care_level">Zimmer %1$s · Pflegegrad %2$d</string>
-    <string name="detail_section_hints">Luma-Hinweise · %1$d</string>
+    <string name="detail_section_hints">Luma-Hinweise</string>
+    <string name="detail_no_open_hints">Keine offenen Hinweise</string>
+    <string name="detail_section_about">Über die Person</string>
     <string name="detail_section_context">Kontext</string>
     <string name="detail_section_history">Verlauf</string>
     <string name="detail_hint_meta">Luma-Hinweis · %1$s %2$s · %3$s</string>
@@ -168,7 +171,6 @@
     <string name="detail_preferences">Vorlieben</string>
     <string name="detail_biography">Biografie</string>
     <string name="detail_not_found">Zu dieser Person gibt es keine Daten.</string>
-    <string name="detail_select_person">Wähle links eine Person aus.</string>
 
     <!-- Zeiten -->
     <string name="time_just_now">gerade eben</string>
@@ -178,6 +180,7 @@
     </plurals>
     <string name="time_hours_ago">vor %1$d Std.</string>
     <string name="time_yesterday">gestern %1$s</string>
+    <string name="time_yesterday_short">gestern</string>
     <string name="time_now">jetzt</string>
     <plurals name="time_in_minutes">
         <item quantity="one">in %d Min.</item>

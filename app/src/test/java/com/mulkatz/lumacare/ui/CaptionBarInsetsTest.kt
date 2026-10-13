@@ -105,7 +105,8 @@ class CaptionBarInsetsTest {
     private fun assertDetailNameBelowCaption() {
         compose.onNodeWithTag("person_card_r04").performClick()
         awaitTag("person_detail")
-        val name = compose.onNode(hasText("Werner Hoffmann") and hasAnyAncestor(hasTestTag("person_detail")))
+        // Einspaltig steht der Name im Inhalt, zweispaltig im Kopf des Detailbereichs.
+        val name = compose.onNode(hasText("Werner Hoffmann") and (hasAnyAncestor(hasTestTag("person_detail")) or hasTestTag("pane_title")))
             .getUnclippedBoundsInRoot()
         assertTrue(name.top >= CAPTION, "Name im Detail beginnt bei ${name.top}")
     }

@@ -14,7 +14,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
@@ -240,10 +239,10 @@ private fun ForwardTargets(selected: ForwardTarget?, onSelect: (ForwardTarget) -
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s)) {
             ForwardTarget.entries.forEach { target ->
-                FilterChip(
+                LumaFilterChip(
                     selected = target == selected,
                     onClick = { onSelect(target) },
-                    label = { Text(stringResource(target.labelRes), style = MaterialTheme.typography.labelLarge) },
+                    label = stringResource(target.labelRes),
                     modifier = Modifier.testTag("forward_target_${target.name.lowercase()}"),
                 )
             }

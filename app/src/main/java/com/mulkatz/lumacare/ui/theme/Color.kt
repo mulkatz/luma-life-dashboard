@@ -9,6 +9,9 @@ import androidx.compose.ui.graphics.Color
 private val Aubergine = Color(0xFF211E32)
 private val Accent = Color(0xFFFACF39)
 
+// Kopfbereich im Dark Mode: kräftigeres, helleres Aubergine, damit sich der Kopf von den Karten (surface) abhebt.
+private val HeaderDark = Color(0xFF2F2A4A)
+
 internal val LumaLightColorScheme = lightColorScheme(
     primary = Color(0xFF2E7F85),
     onPrimary = Color(0xFFFFFFFF),
@@ -30,6 +33,8 @@ internal val LumaLightColorScheme = lightColorScheme(
     surfaceContainerHigh = Color(0xFFFFFFFF),
     surfaceContainerHighest = Color(0xFFF0EFF4),
     surfaceVariant = Color(0xFFF0EFF4),
+    // Liste im List-Detail (Tablet): etwas dunkler als background, Karten (surface) stehen darauf klar
+    surfaceDim = Color(0xFFF0EFF4),
     primaryContainer = Color(0xFFD5EEF0),
     onPrimaryContainer = Color(0xFF17474B),
     secondaryContainer = Color(0xFFD5EEF0),
@@ -47,7 +52,7 @@ internal val LumaLightColorScheme = lightColorScheme(
 internal val LumaDarkColorScheme = darkColorScheme(
     primary = Color(0xFF4AAFB6),
     onPrimary = Aubergine,
-    secondary = Aubergine,
+    secondary = HeaderDark,
     onSecondary = Color(0xFFECEAF4),
     tertiary = Accent,
     onTertiary = Aubergine,
@@ -63,6 +68,8 @@ internal val LumaDarkColorScheme = darkColorScheme(
     surfaceContainerHigh = Color(0xFF2A2740),
     surfaceContainerHighest = Color(0xFF322F48),
     surfaceVariant = Color(0xFF322F48),
+    // Liste im List-Detail (Tablet): etwas dunkler als background, Karten (surface) stehen darauf klar
+    surfaceDim = Color(0xFF110F18),
     primaryContainer = Color(0xFF1F4A4E),
     onPrimaryContainer = Color(0xFFCDEEF0),
     secondaryContainer = Color(0xFF1F4A4E),

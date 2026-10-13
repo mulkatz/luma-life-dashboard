@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -20,14 +21,23 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
@@ -74,8 +84,12 @@ fun selectContextChips(context: List<ContextChip>, max: Int = MAX_CONTEXT_CHIPS)
 }
 
 /**
- * Personenkarte mit dem maßgeblichen Hinweis. [highlighted] (nur „Jetzt handeln“) zeigt den Streifen links
- * und das Dringlichkeits-Badge. Die Karte ist eine TalkBack-Ansage; die Aktion bleibt ein eigenes Tap-Ziel.
+ * Personenkarte mit dem maßgeblichen Hinweis. [highlighted] (nur „Jetzt handeln“) zeigt den Streifen links,
+ * das Dringlichkeits-Badge und die Aktion gefüllt; sonst ist die Aktion tonal. Die Karte ist eine
+ * TalkBack-Ansage; die Aktion bleibt ein eigenes Tap-Ziel.
+ *
+ * Rand: hervorgehoben ohne grauen Rand (der Streifen ist die Kante), sonst `outlineVariant`; gewählt immer
+ * 2 dp `primary`, beim Streifen über ihm gezeichnet, damit keine doppelte Kante entsteht.
  */
 @Composable
 fun PersonCard(
@@ -105,6 +119,7 @@ fun PersonCard(
     val chipTexts = chips.shown.map { it.text() }
     val chipTextsSpoken = chips.shown.map { it.spokenText() }
     val fontScale = LocalDensity.current.fontScale
+    val chipMaxLines = if (fontScale > 1f) 2 else 1
     val moreChipsSpoken = res.getQuantityString(R.plurals.chip_more_spoken, chips.hiddenCount, chips.hiddenCount)
     val description = buildList {
         add(resident.fullName)
@@ -117,6 +132,8 @@ fun PersonCard(
         if (chips.hiddenCount > 0) add(moreChipsSpoken)
     }.joinToString(separator = ", ")
 
+    val shape = MaterialTheme.shapes.medium
+    val primary = MaterialTheme.colorScheme.primary
     Card(
         onClick = onClick,
         modifier = modifier
@@ -125,42 +142,38 @@ fun PersonCard(
             .semantics {
                 contentDescription = description
                 if (selected) this.selected = true
-            },
-        shape = MaterialTheme.shapes.medium,
+            }
+            .then(if (highlighted) Modifier.leadingStripe(stripeColor, shape, selectedColor = primary.takeIf { selected }) else Modifier),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        border = if (selected) {
-            BorderStroke(LumaSizes.selectedBorder, MaterialTheme.colorScheme.primary)
-        } else {
-            BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant)
+        border = when {
+            highlighted -> null
+            selected -> BorderStroke(LumaSizes.selectedBorder, primary)
+            else -> BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant)
         },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (highlighted) {
-                        Modifier.drawBehind {
-                            drawRect(stripeColor, size = Size(LumaSizes.stripe.toPx(), size.height))
-                        }
-                    } else {
-                        Modifier
-                    },
-                )
                 .padding(LumaTheme.spacing.l),
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
-                verticalAlignment = Alignment.Top,
+            // Pflegegrad nur in der Ansage und im Detail; lange Namen brechen um, das Badge rutscht bei
+            // Platzmangel (große Schrift) unter den Namen.
+            // Ohne weight: Passt der Name nicht neben das Badge, nimmt er die volle Breite und das Badge rutscht
+            // in die nächste Zeile; passt beides, steht das Badge rechts (SpaceBetween, Mindestabstand am Namen).
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
             ) {
-                // Pflegegrad nur in der Ansage und im Detail; lange Namen brechen um.
                 Text(
                     text = stringResource(R.string.name_and_room, resident.fullName, resident.room),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(end = LumaTheme.spacing.s),
                 )
                 if (highlighted) SeverityBadge(severity)
             }
@@ -189,13 +202,18 @@ fun PersonCard(
                     horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
                     verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
                 ) {
-                    chipTexts.zip(chips.shown).forEach { (text, chip) -> InfoChip(text, chip.iconRes()) }
+                    chipTexts.zip(chips.shown).forEach { (text, chip) -> InfoChip(text, chip.iconRes(), maxLines = chipMaxLines) }
                     if (chips.hiddenCount > 0) InfoChip(stringResource(R.string.chip_more, chips.hiddenCount), null)
                 }
             }
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                EventActionButton(action = lead.action, onClick = onAction, enabled = actionEnabled)
+                EventActionButton(
+                    action = lead.action,
+                    onClick = onAction,
+                    enabled = actionEnabled,
+                    emphasis = if (highlighted) ActionEmphasis.FILLED else ActionEmphasis.TONAL,
+                )
             }
         }
     }
@@ -203,6 +221,25 @@ fun PersonCard(
 
 /** Hinweistext auf der Karte bei Schrift ≤ 100 %; darüber unbegrenzt. */
 private const val SUMMARY_MAX_LINES = 3
+
+/**
+ * Streifen links in [color] (4 dp), auf die Kartenform [shape] geclippt, sodass er der Rundung folgt.
+ * Mit [selectedColor] liegt darüber der 2-dp-Auswahlrand; der Streifen wird um dessen Breite verbreitert und
+ * bleibt so innen sichtbar.
+ */
+private fun Modifier.leadingStripe(color: Color, shape: Shape, selectedColor: Color?): Modifier = drawWithContent {
+    drawContent()
+    val outline = shape.createOutline(size, layoutDirection, this)
+    val border = if (selectedColor != null) LumaSizes.selectedBorder.toPx() else 0f
+    clipPath(Path().apply { addOutline(outline) }) {
+        drawRect(color, size = Size(LumaSizes.stripe.toPx() + border, size.height))
+    }
+    if (selectedColor != null) {
+        inset(border / 2) {
+            drawOutline(shape.createOutline(size, layoutDirection, this), selectedColor, style = Stroke(width = border))
+        }
+    }
+}
 
 /**
  * Metazeile des Hinweises: „vor 45 Min. · 06:30“, „Aus Nachtdienst · gestern 23:15“ bzw. beim eigenen
@@ -223,10 +260,8 @@ private fun hintMetaText(entry: EventEntry, now: LocalDateTime): String {
 
 @Composable
 private fun HintMeta(entry: EventEntry, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-    ) {
+    val style = MaterialTheme.typography.bodyMedium.tabularNumbers()
+    Row(horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs)) {
         val icon = when {
             entry.isFromNightShift -> R.drawable.ic_moon
             entry.handling == Handling.OWN -> R.drawable.ic_person
@@ -237,14 +272,12 @@ private fun HintMeta(entry: EventEntry, text: String) {
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(LumaSizes.iconSmall),
+                modifier = Modifier
+                    .padding(top = firstLineIconPadding(style))
+                    .size(LumaSizes.iconSmall),
             )
         }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(text = text, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -273,29 +306,32 @@ private fun ContextChip.iconRes(): Int? = when (this) {
     ContextChip.LumaNotReached -> R.drawable.ic_missed
 }
 
-/** Neutraler Kontext-Chip: Rand `outline`, Text in `labelLarge`, einzeilig, Icon optional. */
+/** Neutraler Kontext-Chip: Rand `outline`, Text in `labelLarge`, [maxLines] Zeilen (bei großer Schrift 2), Icon optional. */
 @Composable
-fun InfoChip(text: String, @DrawableRes icon: Int?, modifier: Modifier = Modifier) {
+fun InfoChip(text: String, @DrawableRes icon: Int?, modifier: Modifier = Modifier, maxLines: Int = 1) {
+    val style = MaterialTheme.typography.labelLarge.tabularNumbers()
     Row(
         modifier = modifier
             .border(LumaSizes.border, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
             .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small)
             .padding(horizontal = LumaTheme.spacing.s, vertical = LumaTheme.spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {
         if (icon != null) {
+            // Oben auf Höhe der ersten Zeile, auch wenn der Chip bei großer Schrift zweizeilig wird.
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(LumaSizes.iconSmall),
+                modifier = Modifier
+                    .padding(top = firstLineIconPadding(style))
+                    .size(LumaSizes.iconSmall),
             )
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge.tabularNumbers(),
-            maxLines = 1,
+            style = style,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
@@ -318,22 +354,26 @@ val EventAction.labelRes: Int
  */
 val EventAction.testTag: String get() = "action_${name.lowercase()}"
 
+/** Gewicht einer Aktion: gefüllt (Jetzt handeln, Aktionsleiste), tonal (Zeitnah prüfen), umrandet, Text. */
+enum class ActionEmphasis { FILLED, TONAL, OUTLINED, TEXT }
+
 /**
- * Aktion eines Hinweises: Weiterleiten (bzw. [outlined]) umrandet, sonst gefüllt; Weiterleiten mit Icon.
- * Mindestens 48 dp hoch. [enabled] `false` sperrt sie, solange gespeichert wird.
+ * Aktion eines Hinweises in der Gewichtung [emphasis], mindestens 48 dp hoch. „Weiterleiten“ ist außerhalb der
+ * Aktionsleiste immer umrandet und trägt überall den Pfeil. [enabled] `false` sperrt sie, solange gespeichert wird.
  */
 @Composable
 fun EventActionButton(
     action: EventAction,
     onClick: () -> Unit,
+    emphasis: ActionEmphasis,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    outlined: Boolean = action == EventAction.FORWARD,
 ) {
     val buttonModifier = modifier
         .heightIn(min = LumaSizes.minTouchTarget)
         .testTag(action.testTag)
-    val content: @Composable () -> Unit = {
+    val effective = if (action == EventAction.FORWARD && emphasis != ActionEmphasis.FILLED) ActionEmphasis.OUTLINED else emphasis
+    val content: @Composable RowScope.() -> Unit = {
         if (action == EventAction.FORWARD) {
             Icon(
                 painter = painterResource(R.drawable.ic_forward),
@@ -345,10 +385,8 @@ fun EventActionButton(
         }
         Text(text = stringResource(action.labelRes))
     }
-    if (outlined) {
-        OutlinedButton(onClick = onClick, modifier = buttonModifier, enabled = enabled) { content() }
-    } else {
-        Button(
+    when (effective) {
+        ActionEmphasis.FILLED -> Button(
             onClick = onClick,
             modifier = buttonModifier,
             enabled = enabled,
@@ -356,7 +394,20 @@ fun EventActionButton(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
-        ) { content() }
+            content = content,
+        )
+        ActionEmphasis.TONAL -> FilledTonalButton(
+            onClick = onClick,
+            modifier = buttonModifier,
+            enabled = enabled,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+            content = content,
+        )
+        ActionEmphasis.OUTLINED -> LumaOutlinedButton(onClick = onClick, modifier = buttonModifier, enabled = enabled, content = content)
+        ActionEmphasis.TEXT -> TextButton(onClick = onClick, modifier = buttonModifier, enabled = enabled, content = content)
     }
 }
 

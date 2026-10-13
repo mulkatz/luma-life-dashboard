@@ -37,7 +37,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalResources
@@ -53,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
+import com.mulkatz.lumacare.domain.EventActionType
 import com.mulkatz.lumacare.domain.EventCommand
 import com.mulkatz.lumacare.domain.EventEntry
 import com.mulkatz.lumacare.domain.EventStatus
@@ -68,15 +68,21 @@ import com.mulkatz.lumacare.ui.actions.InputCheck
 import com.mulkatz.lumacare.ui.actions.PersonActions
 import com.mulkatz.lumacare.ui.actions.PersonActionsViewModel
 import com.mulkatz.lumacare.ui.actions.runAction
+import com.mulkatz.lumacare.ui.components.ActionEmphasis
 import com.mulkatz.lumacare.ui.components.BottomActionBar
 import com.mulkatz.lumacare.ui.components.EventActionButton
+import com.mulkatz.lumacare.ui.components.IconLabel
 import com.mulkatz.lumacare.ui.components.NoteSheet
+import com.mulkatz.lumacare.ui.components.QuietNotice
 import com.mulkatz.lumacare.ui.components.ResolutionInput
+import com.mulkatz.lumacare.ui.components.ResolutionLabel
 import com.mulkatz.lumacare.ui.components.ResolutionSheet
 import com.mulkatz.lumacare.ui.components.SecondaryActionButton
+import com.mulkatz.lumacare.ui.components.SectionHeader
 import com.mulkatz.lumacare.ui.components.SheetSubject
 import com.mulkatz.lumacare.ui.components.SeverityBadge
 import com.mulkatz.lumacare.ui.components.SubpageAppBar
+import com.mulkatz.lumacare.ui.components.TimeColumn
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.iconRes
@@ -87,6 +93,7 @@ import com.mulkatz.lumacare.ui.dashboard.DashboardViewModel
 import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 import com.mulkatz.lumacare.ui.theme.tabularNumbers
+import java.time.LocalDateTime
 
 /** Holt denselben Zustand wie das Dashboard und leitet das Detail der Person daraus ab; Aktionen über [actions]. */
 @Composable
@@ -115,7 +122,7 @@ fun PersonDetailRoute(
 
 /**
  * Personendetail ohne eigenen Zustand: Kopf, offene Luma-Hinweise, Kontext, Verlauf (Hinweise und Aktionen der
- * Pflege), darunter ruhig Vorlieben und Biografie. [onBack] `null` heißt Detailbereich auf dem Tablet, ohne
+ * Pflege), darunter „Über die Person“ (Vorlieben, Biografie). [onBack] `null` heißt Detailbereich auf dem Tablet, ohne
  * Zurück-Appbar.
  *
  * Aktionen: Die Leiste unten gilt dem maßgeblichen Hinweis (primär je nach Zustand, sekundär „Notiz“). Weitere
@@ -131,13 +138,18 @@ fun PersonDetailScreen(
     input: ActionInputState = ActionInputState(),
     actions: PersonActions = PersonActions.None,
 ) {
-    val lead = (state as? PersonDetailUiState.Ready)?.detail?.hints?.firstOrNull()
+    val detail = (state as? PersonDetailUiState.Ready)?.detail
+    val lead = detail?.hints?.firstOrNull()
+    // Zweispaltig (ohne Zurück) steht der Name im Kopf, bündig mit dem ShiftHeader links.
+    val inPane = onBack == null
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = { SubpageAppBar(title = null, onBack = onBack) },
-        bottomBar = { if (lead != null) DetailActionBar(lead, input, actions) },
+        topBar = { SubpageAppBar(title = if (inPane) detail?.resident?.fullName else null, onBack = onBack) },
+        bottomBar = {
+            if (lead != null) DetailActionBar(lead, referToLead = detail.hints.size > 1, now = detail.now, input = input, actions = actions)
+        },
     ) { innerPadding ->
         when (state) {
             PersonDetailUiState.Loading -> CenteredMessage(innerPadding) {
@@ -168,24 +180,39 @@ fun PersonDetailScreen(
                     textAlign = TextAlign.Center,
                 )
             }
-            is PersonDetailUiState.Ready -> DetailContent(state.detail, innerPadding, input, actions)
+            is PersonDetailUiState.Ready -> DetailContent(state.detail, innerPadding, showName = !inPane, input = input, actions = actions)
         }
     }
     if (state is PersonDetailUiState.Ready) ActionSheets(state, input, actions)
 }
 
-/** Aktionen des maßgeblichen Hinweises; gesperrt, solange zu ihm gespeichert wird. */
+/**
+ * Aktionen des maßgeblichen Hinweises; gesperrt, solange zu ihm gespeichert wird. Bei mehreren offenen
+ * Hinweisen ([referToLead]) nennt eine Zeile über den Buttons den Hinweis („Zum Hinweis von gestern 23:15“).
+ */
 @Composable
-private fun DetailActionBar(lead: EventEntry, input: ActionInputState, actions: PersonActions) {
+private fun DetailActionBar(
+    lead: EventEntry,
+    referToLead: Boolean,
+    now: LocalDateTime,
+    input: ActionInputState,
+    actions: PersonActions,
+) {
+    val res = LocalResources.current
     val busy = input.isBusy(lead.event.id)
     BottomActionBar(
+        caption = if (referToLead) {
+            stringResource(R.string.history_hint_reference, TimeFormat.clockLabel(res, lead.event.timestamp, now))
+        } else {
+            null
+        },
         primary = { modifier ->
             EventActionButton(
                 action = lead.action,
                 onClick = { actions.runAction(lead) },
+                emphasis = ActionEmphasis.FILLED,
                 modifier = modifier,
                 enabled = !busy,
-                outlined = false,
             )
         },
         secondary = {
@@ -280,6 +307,7 @@ private fun Modifier.contentWidth(): Modifier =
 private fun DetailContent(
     detail: PersonDetail,
     innerPadding: PaddingValues,
+    showName: Boolean,
     input: ActionInputState,
     actions: PersonActions,
 ) {
@@ -300,27 +328,39 @@ private fun DetailContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.xl),
     ) {
-        Header(detail)
-        if (detail.hints.isNotEmpty()) HintsSection(detail, input, actions)
+        Header(detail, showName)
+        if (detail.hints.isNotEmpty()) {
+            HintsSection(detail, input, actions)
+        } else {
+            // Nach dem Abschluss: ruhiger Hinweis statt eines Sprungs zum Kontext.
+            QuietNotice(
+                icon = R.drawable.ic_check_circle,
+                text = stringResource(R.string.detail_no_open_hints),
+                modifier = Modifier.contentWidth().testTag("detail_no_hints"),
+            )
+        }
         ContextSection(detail)
         if (detail.history.isNotEmpty()) HistorySection(detail)
-        QuietSection(detail)
+        AboutSection(detail)
     }
 }
 
+/** Name (nur einspaltig; zweispaltig steht er im Kopf) und „Zimmer · Pflegegrad“. */
 @Composable
-private fun Header(detail: PersonDetail) {
+private fun Header(detail: PersonDetail, showName: Boolean) {
     val resident = detail.resident
     Column(
         modifier = Modifier.contentWidth(),
         verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {
-        Text(
-            text = resident.fullName,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.semantics { heading() },
-        )
+        if (showName) {
+            Text(
+                text = resident.fullName,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
         Text(
             text = stringResource(R.string.detail_room_care_level, resident.room, resident.careLevel),
             style = MaterialTheme.typography.bodyMedium,
@@ -329,20 +369,9 @@ private fun Header(detail: PersonDetail) {
     }
 }
 
+/** Karte im Detail; [highlighted] (Bezug der Aktionsleiste) mit Rand 2 dp `primary`, sonst `outlineVariant`. */
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier
-            .padding(bottom = LumaTheme.spacing.m)
-            .semantics { heading() },
-    )
-}
-
-@Composable
-private fun DetailCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun DetailCard(modifier: Modifier = Modifier, highlighted: Boolean = false, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -350,7 +379,11 @@ private fun DetailCard(modifier: Modifier = Modifier, content: @Composable () ->
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        border = BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant),
+        border = if (highlighted) {
+            BorderStroke(LumaSizes.selectedBorder, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(LumaSizes.border, MaterialTheme.colorScheme.outlineVariant)
+        },
     ) {
         Column { content() }
     }
@@ -361,11 +394,20 @@ private fun DetailCard(modifier: Modifier = Modifier, content: @Composable () ->
 @Composable
 private fun HintsSection(detail: PersonDetail, input: ActionInputState, actions: PersonActions) {
     Column(modifier = Modifier.contentWidth()) {
-        SectionTitle(stringResource(R.string.detail_section_hints, detail.hints.size))
+        SectionHeader(title = stringResource(R.string.detail_section_hints), count = detail.hints.size)
+        val several = detail.hints.size > 1
         Column(verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m)) {
             detail.hints.forEachIndexed { index, entry ->
                 key(entry.event.id) {
-                    HintCard(entry, detail, isLead = index == 0, busy = input.isBusy(entry.event.id), actions = actions)
+                    HintCard(
+                        entry = entry,
+                        detail = detail,
+                        isLead = index == 0,
+                        // Bei mehreren Hinweisen markiert der Rand, welchem die Aktionsleiste gilt.
+                        highlighted = several && index == 0,
+                        busy = input.isBusy(entry.event.id),
+                        actions = actions,
+                    )
                 }
             }
         }
@@ -378,7 +420,14 @@ private fun HintsSection(detail: PersonDetail, input: ActionInputState, actions:
  * Eigene Fälle bieten „Zurückgeben“ als Textaktion.
  */
 @Composable
-private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, busy: Boolean, actions: PersonActions) {
+private fun HintCard(
+    entry: EventEntry,
+    detail: PersonDetail,
+    isLead: Boolean,
+    highlighted: Boolean,
+    busy: Boolean,
+    actions: PersonActions,
+) {
     val res = LocalResources.current
     val event = entry.event
     val own = entry.handling == Handling.OWN
@@ -389,13 +438,21 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, b
         TimeFormat.clockLabel(res, event.timestamp, detail.now),
         TimeFormat.age(res, event.timestamp, detail.now),
     )
+    val actionRow = own || !isLead
     DetailCard(
         modifier = Modifier
             .testTag("detail_hint_${event.id}")
             .semantics(mergeDescendants = true) {},
+        highlighted = highlighted,
     ) {
         Column(
-            modifier = Modifier.padding(LumaTheme.spacing.l),
+            // Mit Aktionszeile unten weniger Rand: Die Buttons bringen ihre 48-dp-Fläche selbst mit.
+            modifier = Modifier.padding(
+                start = LumaTheme.spacing.l,
+                end = LumaTheme.spacing.l,
+                top = LumaTheme.spacing.l,
+                bottom = if (actionRow) LumaTheme.spacing.s else LumaTheme.spacing.l,
+            ),
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
         ) {
             FlowRow(
@@ -405,7 +462,7 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, b
             ) {
                 SeverityBadge(event.severity)
                 if (entry.isFromNightShift) {
-                    Label(
+                    IconLabel(
                         icon = R.drawable.ic_moon,
                         text = stringResource(R.string.handling_from_night),
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -413,11 +470,12 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, b
                     )
                 }
                 if (own) {
-                    Label(
+                    // Neutral wie „Aus Nachtdienst“, nicht in `primary` (sähe aus wie ein Link).
+                    IconLabel(
                         icon = R.drawable.ic_person,
                         text = stringResource(R.string.handling_own),
-                        iconTint = MaterialTheme.colorScheme.primary,
-                        textColor = MaterialTheme.colorScheme.primary,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("handling_own_${event.id}"),
                     )
                 }
@@ -429,15 +487,17 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, b
             )
             // Hinweis statt Diagnose: Originalaussage unverändert und ungekürzt.
             Text(text = event.summary, style = MaterialTheme.typography.bodyLarge)
-            if (own || !isLead) {
+            if (actionRow) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (own) {
+                        // Bündig zur Textkante: links ohne Innenabstand, Tap-Fläche bleibt 48 dp hoch.
                         TextButton(
                             onClick = { actions.perform(event, EventCommand.Release) },
                             enabled = !busy,
+                            contentPadding = PaddingValues(end = LumaTheme.spacing.m),
                             modifier = Modifier
                                 .heightIn(min = LumaSizes.minTouchTarget)
                                 .testTag("action_release"),
@@ -450,8 +510,8 @@ private fun HintCard(entry: EventEntry, detail: PersonDetail, isLead: Boolean, b
                         EventActionButton(
                             action = entry.action,
                             onClick = { actions.runAction(entry) },
+                            emphasis = ActionEmphasis.OUTLINED,
                             enabled = !busy,
-                            outlined = true,
                         )
                     }
                 }
@@ -523,7 +583,7 @@ private fun ContextSection(detail: PersonDetail) {
     if (rows.isEmpty()) return
 
     Column(modifier = Modifier.contentWidth().testTag("detail_context")) {
-        SectionTitle(stringResource(R.string.detail_section_context))
+        SectionHeader(title = stringResource(R.string.detail_section_context))
         DetailCard {
             rows.forEachIndexed { index, row ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -576,7 +636,7 @@ private fun ContextText(text: String, @DrawableRes icon: Int? = null) {
 @Composable
 private fun HistorySection(detail: PersonDetail) {
     Column(modifier = Modifier.contentWidth().testTag("detail_history")) {
-        SectionTitle(stringResource(R.string.detail_section_history))
+        SectionHeader(title = stringResource(R.string.detail_section_history))
         DetailCard {
             detail.history.forEachIndexed { index, entry ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -599,11 +659,7 @@ private fun HistoryRow(entry: PersonHistoryEntry, detail: PersonDetail) {
             .padding(LumaTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
     ) {
-        Text(
-            text = TimeFormat.clockLabel(res, event.timestamp, detail.now),
-            style = MaterialTheme.typography.titleSmall.tabularNumbers(),
-            modifier = Modifier.widthIn(min = LumaSizes.timeColumnMinWidth),
-        )
+        TimeColumn(time = event.timestamp, now = detail.now)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
@@ -612,7 +668,7 @@ private fun HistoryRow(entry: PersonHistoryEntry, detail: PersonDetail) {
                 horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
                 verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
             ) {
-                Label(
+                IconLabel(
                     icon = event.severity.iconRes,
                     text = stringResource(event.severity.labelRes),
                     // Erledigt: Dringlichkeit nur noch als Text, Icon neutral (wie im Schichtverlauf).
@@ -625,13 +681,13 @@ private fun HistoryRow(entry: PersonHistoryEntry, detail: PersonDetail) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 when {
-                    entry.isDone -> Label(
+                    entry.isDone -> IconLabel(
                         icon = R.drawable.ic_check_circle,
                         text = stringResource(R.string.status_done),
                         iconTint = LumaTheme.status.done.content,
                         textColor = LumaTheme.status.done.content,
                     )
-                    entry.isFromNightShift -> Label(
+                    entry.isFromNightShift -> IconLabel(
                         icon = R.drawable.ic_moon,
                         text = stringResource(R.string.handling_from_night),
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -661,21 +717,21 @@ private fun ActionHistoryRow(action: LoggedAction, detail: PersonDetail) {
             .padding(LumaTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
     ) {
-        Text(
-            text = TimeFormat.clockLabel(res, action.time, detail.now),
-            style = MaterialTheme.typography.titleSmall.tabularNumbers(),
-            modifier = Modifier.widthIn(min = LumaSizes.timeColumnMinWidth),
-        )
+        TimeColumn(time = action.time, now = detail.now)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
         ) {
-            Label(
-                icon = action.iconRes,
-                text = action.title(),
-                iconTint = if (action.after.status == EventStatus.DONE) LumaTheme.status.done.content else MaterialTheme.colorScheme.onSurfaceVariant,
-                textColor = MaterialTheme.colorScheme.onSurface,
-            )
+            val resolution = action.after.resolution
+            if (action.record.type == EventActionType.RESOLVE && resolution != null) {
+                ResolutionLabel(resolution, action.record.forwardedTo)
+            } else {
+                IconLabel(
+                    icon = action.iconRes,
+                    text = action.title(),
+                    iconTint = if (action.after.status == EventStatus.DONE) LumaTheme.status.done.content else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 text = stringResource(R.string.history_hint_reference, TimeFormat.clockLabel(res, action.event.timestamp, detail.now)),
                 style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
@@ -686,58 +742,27 @@ private fun ActionHistoryRow(action: LoggedAction, detail: PersonDetail) {
     }
 }
 
-@Composable
-private fun Label(
-    @DrawableRes icon: Int,
-    text: String,
-    iconTint: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(LumaSizes.iconSmall),
-        )
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = textColor)
-    }
-}
+// ---------- Über die Person ----------
 
-// ---------- Vorlieben und Biografie ----------
-
-/** Ruhig, ohne Karte: was die Person ausmacht, nicht was jetzt zu tun ist. */
+/** Vorlieben und Biografie: was die Person ausmacht, nicht was jetzt zu tun ist. Gleicher Aufbau wie „Kontext“. */
 @Composable
-private fun QuietSection(detail: PersonDetail) {
+private fun AboutSection(detail: PersonDetail) {
     val resident = detail.resident
     val separator = stringResource(R.string.list_separator)
     if (resident.preferences.isEmpty() && resident.biography.isEmpty()) return
-    Column(
-        modifier = Modifier.contentWidth(),
-        verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.l),
-    ) {
-        if (resident.preferences.isNotEmpty()) QuietItem(stringResource(R.string.detail_preferences), resident.preferences.joinToString(separator))
-        if (resident.biography.isNotEmpty()) QuietItem(stringResource(R.string.detail_biography), resident.biography.joinToString(separator))
-    }
-}
-
-@Composable
-private fun QuietItem(label: String, text: String) {
-    Column(
-        modifier = Modifier.semantics(mergeDescendants = true) {},
-        verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(text = text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+    Column(modifier = Modifier.contentWidth().testTag("detail_about")) {
+        SectionHeader(title = stringResource(R.string.detail_section_about))
+        DetailCard {
+            if (resident.preferences.isNotEmpty()) {
+                ContextRow(stringResource(R.string.detail_preferences)) { ContextText(resident.preferences.joinToString(separator)) }
+            }
+            if (resident.preferences.isNotEmpty() && resident.biography.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+            if (resident.biography.isNotEmpty()) {
+                ContextRow(stringResource(R.string.detail_biography)) { ContextText(resident.biography.joinToString(separator)) }
+            }
+        }
     }
 }
 

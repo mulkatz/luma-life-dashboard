@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -35,7 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -62,7 +63,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
-import com.mulkatz.lumacare.domain.EventAction
 import com.mulkatz.lumacare.domain.EventEntry
 import com.mulkatz.lumacare.domain.EventType
 import com.mulkatz.lumacare.domain.LumaEvent
@@ -70,17 +70,20 @@ import com.mulkatz.lumacare.domain.PersonEntry
 import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.domain.ResolvedEntry
 import com.mulkatz.lumacare.domain.UpcomingItem
+import com.mulkatz.lumacare.ui.components.ActionEmphasis
 import com.mulkatz.lumacare.ui.components.EmptyState
+import com.mulkatz.lumacare.ui.components.EventActionButton
 import com.mulkatz.lumacare.ui.components.PersonCard
+import com.mulkatz.lumacare.ui.components.SectionHeader
 import com.mulkatz.lumacare.ui.components.ShiftHeader
 import com.mulkatz.lumacare.ui.components.ShiftTimeline
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
+import com.mulkatz.lumacare.ui.components.firstLineIconPadding
 import com.mulkatz.lumacare.ui.components.iconRes
 import com.mulkatz.lumacare.ui.components.labelRes
 import com.mulkatz.lumacare.ui.components.resolutionText
 import com.mulkatz.lumacare.ui.components.shortUnitName
-import com.mulkatz.lumacare.ui.components.testTag
 import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 import com.mulkatz.lumacare.ui.theme.tabularNumbers
@@ -98,6 +101,10 @@ fun DashboardRoute(
     modifier: Modifier = Modifier,
     /** Gewählte Person im List-Detail (Tablet); auf dem Phone `null`. */
     selectedPersonId: String? = null,
+    /** `true` als Liste im List-Detail (Tablet): getönte Fläche und Trennlinie zum Detail. */
+    asListPane: Boolean = false,
+    /** Am Kopfbereich (ShiftHeader), z. B. um seine Höhe für den Kopf des Detailbereichs zu messen. */
+    headerModifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
     ),
@@ -112,6 +119,8 @@ fun DashboardRoute(
         isBusy = isBusy,
         modifier = modifier,
         selectedPersonId = selectedPersonId,
+        asListPane = asListPane,
+        headerModifier = headerModifier,
     )
 }
 
@@ -120,6 +129,9 @@ fun DashboardRoute(
  * Organisatorisches. Abschnitte ohne Einträge entfallen; der Schichtverlauf steht immer da, auch unter
  * „Alles erledigt“, darunter dann „In dieser Schicht erledigt“. „Alles erledigt“ erscheint nur in
  * [DashboardUiState.Ready].
+ *
+ * [asListPane]: Als Liste im List-Detail liegt der Inhalt auf `surfaceDim` (Karten heben sich ab), rechts
+ * unter dem Kopfbereich trennt eine 1-dp-Linie vom Detail. Der Kopfbereich bleibt bis zum Rand `secondary`.
  */
 @Composable
 fun DashboardScreen(
@@ -131,32 +143,45 @@ fun DashboardScreen(
     onEventAction: (EventEntry) -> Unit = {},
     isBusy: (String) -> Boolean = { false },
     selectedPersonId: String? = null,
+    asListPane: Boolean = false,
+    headerModifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = if (asListPane) MaterialTheme.colorScheme.surfaceDim else MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            if (state is DashboardUiState.Ready) ReadyHeader(state) else HeaderPlaceholder()
+            if (state is DashboardUiState.Ready) ReadyHeader(state, headerModifier) else HeaderPlaceholder(headerModifier)
         },
     ) { innerPadding ->
-        when (state) {
-            DashboardUiState.Loading -> LoadingContent(innerPadding)
-            DashboardUiState.Error -> ErrorContent(innerPadding, onRetry)
-            is DashboardUiState.Ready -> ReadyContent(
-                state = state,
-                innerPadding = innerPadding,
-                selectedPersonId = selectedPersonId,
-                onPersonClick = onPersonClick,
-                onTimelineClick = onTimelineClick,
-                actions = CardActions(onEventAction, isBusy),
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (state) {
+                DashboardUiState.Loading -> LoadingContent(innerPadding)
+                DashboardUiState.Error -> ErrorContent(innerPadding, onRetry)
+                is DashboardUiState.Ready -> ReadyContent(
+                    state = state,
+                    innerPadding = innerPadding,
+                    selectedPersonId = selectedPersonId,
+                    onPersonClick = onPersonClick,
+                    onTimelineClick = onTimelineClick,
+                    actions = CardActions(onEventAction, isBusy),
+                )
+            }
+            if (asListPane) {
+                VerticalDivider(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = innerPadding.calculateTopPadding()),
+                    thickness = LumaSizes.border,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ReadyHeader(state: DashboardUiState.Ready) {
+private fun ReadyHeader(state: DashboardUiState.Ready, modifier: Modifier) {
     val res = LocalResources.current
     val remaining = if (state.isShiftOver) null else TimeFormat.remainingShort(res, state.remaining)
     val remainingSpoken = if (state.isShiftOver) null else TimeFormat.remainingSpoken(res, state.remaining)
@@ -166,14 +191,15 @@ private fun ReadyHeader(state: DashboardUiState.Ready) {
         time = TimeFormat.clock(state.model.now),
         remaining = remaining,
         remainingSpoken = remainingSpoken,
+        modifier = modifier,
     )
 }
 
 /** Aubergine-Fläche hinter der Statusleiste, solange noch keine Schichtdaten da sind. */
 @Composable
-private fun HeaderPlaceholder() {
+private fun HeaderPlaceholder(modifier: Modifier) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.secondary,
         contentColor = MaterialTheme.colorScheme.onSecondary,
     ) {
@@ -394,34 +420,7 @@ private fun SectionHeader(section: Section, count: Int) {
         Section.INFO -> LumaTheme.status.info.content
         Section.DONE -> LumaTheme.status.done.content
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = LumaTheme.spacing.m)
-            .semantics(mergeDescendants = true) { heading() },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
-    ) {
-        Icon(
-            painter = painterResource(section.icon),
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(LumaSizes.iconMedium),
-        )
-        Text(
-            text = stringResource(section.title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.labelLarge.tabularNumbers(),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-                .padding(horizontal = LumaTheme.spacing.s),
-        )
-    }
+    SectionHeader(title = stringResource(section.title), count = count, icon = section.icon, iconTint = tint)
 }
 
 @Composable
@@ -487,62 +486,65 @@ private fun UpcomingRow(item: UpcomingItem, now: LocalDateTime, onPersonClick: (
         )
     }
     val names = people.associate { it.id to it.fullName }
-    Row(
+    // Zeile 1: Uhrzeit links, Abstand rechts. Darunter Titel, Meta und offene Hinweise über die volle Breite,
+    // damit auch bei großer Schrift kein Wort mitten im Wort umbricht.
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {}
             .padding(LumaTheme.spacing.l),
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
+        verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {
-        Text(
-            text = TimeFormat.clock(item.time),
-            style = MaterialTheme.typography.titleMedium.tabularNumbers(),
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-        ) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall)
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = meta,
-                style = MaterialTheme.typography.bodyMedium,
+                text = TimeFormat.clock(item.time),
+                style = MaterialTheme.typography.titleMedium.tabularNumbers(),
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = TimeFormat.until(res, item.time, now),
+                style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            item.openHints.forEach { hint ->
-                names[hint.residentId]?.let { name ->
-                    OpenHintLine(hint, name, onClick = { onPersonClick(hint.residentId) })
-                }
-            }
         }
+        Text(text = title, style = MaterialTheme.typography.titleSmall)
         Text(
-            text = TimeFormat.until(res, item.time, now),
-            style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
+            text = meta,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        item.openHints.forEach { hint ->
+            names[hint.residentId]?.let { name ->
+                OpenHintLine(hint, name, onClick = { onPersonClick(hint.residentId) })
+            }
+        }
     }
 }
 
 /** Verknüpfung ohne Wiederholung des Hinweistexts und ohne Bewertung; Tippen öffnet die Person. */
 @Composable
 private fun OpenHintLine(hint: LumaEvent, name: String, onClick: () -> Unit) {
-    Row(
+    val style = MaterialTheme.typography.bodyMedium
+    // 48 dp Tap-Fläche, Inhalt darin mittig; das Icon steht oben bei der ersten Zeile, falls der Text umbricht.
+    Box(
         modifier = Modifier
+            .fillMaxWidth()
             .heightIn(min = LumaSizes.minTouchTarget)
             .clickable(onClick = onClick)
             .testTag("open_hint_${hint.residentId}"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
+        contentAlignment = Alignment.CenterStart,
     ) {
-        Icon(
-            painter = painterResource(hint.severity.iconRes),
-            contentDescription = stringResource(hint.severity.labelRes),
-            tint = hint.severity.colors.content,
-            modifier = Modifier.size(LumaSizes.iconSmall),
-        )
-        Text(
-            text = stringResource(R.string.upcoming_open_hint, name),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs)) {
+            Icon(
+                painter = painterResource(hint.severity.iconRes),
+                contentDescription = stringResource(hint.severity.labelRes),
+                tint = hint.severity.colors.content,
+                modifier = Modifier
+                    .padding(top = firstLineIconPadding(style))
+                    .size(LumaSizes.iconSmall),
+            )
+            Text(text = stringResource(R.string.upcoming_open_hint, name), style = style)
+        }
     }
 }
 
@@ -638,24 +640,12 @@ private fun OrganizationalRow(
                 )
             }
         }
-        TextButton(
+        EventActionButton(
+            action = lead.action,
             onClick = onAction,
+            emphasis = ActionEmphasis.TEXT,
             enabled = actionEnabled,
-            modifier = Modifier
-                .heightIn(min = LumaSizes.minTouchTarget)
-                .testTag(lead.action.testTag),
-        ) {
-            if (lead.action == EventAction.FORWARD) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_forward),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = LumaTheme.spacing.s)
-                        .size(LumaSizes.iconSmall),
-                )
-            }
-            Text(text = stringResource(lead.action.labelRes))
-        }
+        )
     }
 }
 

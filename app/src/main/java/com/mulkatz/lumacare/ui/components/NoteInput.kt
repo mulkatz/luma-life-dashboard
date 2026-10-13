@@ -9,16 +9,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,8 +43,10 @@ private val NOTE_SNIPPETS: List<Pair<Int, String>> = listOf(
 )
 
 /**
- * Notiz: Textbausteine als Chips, darunter das Freitextfeld. [showError] zeigt den Inline-Fehler
- * „Bitte kurz notieren, was du getan hast.“ mit Icon (Farbe nie allein); es gibt keinen Dialog.
+ * Notiz: Textbausteine als Chips, darunter das Freitextfeld. Bei Pflicht steht zuerst ein neutraler Hinweis
+ * („Pflichtnotiz: …“, `onSurfaceVariant`). [showError] (ungültig) zeigt den Inline-Fehler „Bitte kurz notieren,
+ * was du getan hast.“ mit Icon (Farbe nie allein) erst, wenn das Feld bearbeitet oder verlassen wurde bzw. ein
+ * Baustein gewählt ist. Es gibt keinen Dialog.
  */
 @Composable
 fun NoteInput(
@@ -51,6 +57,10 @@ fun NoteInput(
     showError: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // Berührt: bearbeitet, Baustein gewählt oder nach Fokus wieder verlassen; ein Entwurf zählt als bearbeitet.
+    var touched by rememberSaveable { mutableStateOf(value.isNotEmpty()) }
+    var focused by remember { mutableStateOf(false) }
+    val error = showError && touched
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -58,23 +68,39 @@ fun NoteInput(
         verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s),
     ) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.s)) {
-            NOTE_SNIPPETS.forEach { (text, tag) -> SnippetChip(text, tag, onSnippet) }
+            NOTE_SNIPPETS.forEach { (text, tag) ->
+                SnippetChip(text, tag) {
+                    touched = true
+                    onSnippet(it)
+                }
+            }
         }
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = {
+                touched = true
+                onValueChange(it)
+            },
             modifier = Modifier
                 .fillMaxWidth()
+                .onFocusChanged { state ->
+                    if (focused && !state.isFocused) touched = true
+                    focused = state.isFocused
+                }
                 .testTag("note_text"),
             label = { Text(stringResource(if (required) R.string.note_label_required else R.string.note_label_optional)) },
             textStyle = MaterialTheme.typography.bodyLarge,
             minLines = 2,
-            isError = showError,
+            isError = error,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            supportingText = if (showError) {
-                { NoteError() }
-            } else {
-                null
+            supportingText = when {
+                error -> {
+                    { NoteError() }
+                }
+                required -> {
+                    { NoteRequiredHint() }
+                }
+                else -> null
             },
         )
     }
@@ -84,13 +110,23 @@ fun NoteInput(
 private fun SnippetChip(@StringRes text: Int, tag: String, onSnippet: (String) -> Unit) {
     val label = stringResource(text)
     val spoken = stringResource(R.string.note_chip_spoken, label)
-    AssistChip(
+    LumaAssistChip(
         onClick = { onSnippet(label) },
-        label = { Text(text = label, style = MaterialTheme.typography.labelLarge) },
+        label = label,
         modifier = Modifier
             .testTag(tag)
             .semantics { contentDescription = spoken },
-        colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.onSurface),
+    )
+}
+
+/** Neutraler Pflichthinweis, bevor das Feld berührt wurde. */
+@Composable
+private fun NoteRequiredHint() {
+    Text(
+        text = stringResource(R.string.note_required_hint),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("note_required_hint"),
     )
 }
 

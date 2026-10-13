@@ -15,6 +15,7 @@ object TimeFormat {
     private val CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val HOUR: DateTimeFormatter = DateTimeFormatter.ofPattern("HH")
     private val DATE_CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM. HH:mm")
+    private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
 
     /** „07:15“ */
     fun clock(time: LocalDateTime): String = time.format(CLOCK)
@@ -28,6 +29,14 @@ object TimeFormat {
             0L -> clock(time)
             1L -> res.getString(R.string.time_yesterday, clock(time))
             else -> time.format(DATE_CLOCK)
+        }
+
+    /** Tag relativ zu [now] für eine Zeitspalte: `null` für heute, „gestern“, sonst „10.10.“. */
+    fun dayLabel(res: Resources, time: LocalDateTime, now: LocalDateTime): String? =
+        when (ChronoUnit.DAYS.between(time.toLocalDate(), now.toLocalDate())) {
+            0L -> null
+            1L -> res.getString(R.string.time_yesterday_short)
+            else -> time.format(DATE)
         }
 
     /** Alter: „gerade eben“, „vor 45 Min.“, ab einer Stunde abgerundet „vor 8 Std.“. */

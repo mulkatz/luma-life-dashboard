@@ -2,12 +2,10 @@ package com.mulkatz.lumacare.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -22,39 +20,49 @@ import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulkatz.lumacare.LumaApplication
 import com.mulkatz.lumacare.R
+import com.mulkatz.lumacare.domain.DashboardModel
 import com.mulkatz.lumacare.domain.EventCommand
 import com.mulkatz.lumacare.domain.EventEntry
 import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.ui.actions.ActionFeedback
 import com.mulkatz.lumacare.ui.actions.PersonActionsViewModel
 import com.mulkatz.lumacare.ui.actions.runAction
-import com.mulkatz.lumacare.ui.components.EmptyState
+import com.mulkatz.lumacare.ui.components.LocalPaneHeaderHeight
 import com.mulkatz.lumacare.ui.components.SubpageAppBar
 import com.mulkatz.lumacare.ui.components.resolutionText
 import com.mulkatz.lumacare.ui.dashboard.DashboardUiState
@@ -114,6 +122,16 @@ private fun backBehavior(twoPane: Boolean): BackNavigationBehavior =
  * brauchen Eingaben und öffnen das Detail mit dem Sheet.
  *
  * Neu geöffnete Ziele beginnen oben; per Zurück erreichte behalten ihre Scrollposition.
+ *
+ * Zweispaltig ohne Auswahl öffnet sich die oberste Person (Jetzt handeln, sonst Zeitnah prüfen, sonst
+ * Organisatorisches); ist niemand offen, steht rechts der Schichtverlauf. Eine Auswahl, auch die
+ * automatische, wird nie überschrieben. Wird die Ansicht einspaltig, fällt nur die automatische Auswahl
+ * weg, damit das Phone-Layout mit dem Dashboard beginnt.
+ *
+ * Zwischen den Spalten liegt kein Spalt (`horizontalPartitionSpacerSize` 0), sonst unterbräche er den
+ * dunklen Streifen hinter Status- bzw. Titelleiste. Die Liste zieht stattdessen selbst eine Trennlinie.
+ * Der Kopf des Detailbereichs ist so hoch wie der gemessene ShiftHeader links ([LocalPaneHeaderHeight]),
+ * damit beide Köpfe bündig abschließen.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -125,13 +143,22 @@ fun LumaApp(
         factory = PersonActionsViewModel.factory((LocalContext.current.applicationContext as LumaApplication).container),
     ),
 ) {
-    val navigator = rememberListDetailPaneScaffoldNavigator<String>()
+    val navigator = rememberListDetailPaneScaffoldNavigator<String>(
+        scaffoldDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
+            .copy(horizontalPartitionSpacerSize = 0.dp),
+    )
     val scope = rememberCoroutineScope()
     val detailStates = rememberSaveableStateHolder()
     val twoPane = navigator.scaffoldDirective.maxHorizontalPartitions > 1
     val target = navigator.currentDestination?.contentKey?.let(DetailTarget::fromKey)
 
+    val density = LocalDensity.current
+    var listHeaderHeight by remember { mutableStateOf(0.dp) }
+    // Key der automatisch geöffneten Person, solange niemand selbst gewählt hat.
+    var autoSelectedKey by rememberSaveable { mutableStateOf<String?>(null) }
+
     val open: (DetailTarget) -> Unit = { next ->
+        autoSelectedKey = null
         if (next != target) {
             detailStates.removeState(next.key)
             scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, next.key) }
@@ -153,6 +180,23 @@ fun LumaApp(
             personId != null && ready != null && ready.data.events.any { it.residentId == personId && it.isOpen }
         }
     }
+    val isReady by remember { derivedStateOf { uiState.value is DashboardUiState.Ready } }
+    val topPersonId by remember {
+        derivedStateOf { (uiState.value as? DashboardUiState.Ready)?.model?.topPersonId() }
+    }
+
+    LaunchedEffect(twoPane, target, topPersonId) {
+        val top = topPersonId
+        if (twoPane && target == null && top != null) {
+            val key = DetailTarget.Person(top).key
+            autoSelectedKey = key
+            detailStates.removeState(key)
+            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, key)
+        } else if (!twoPane && target != null && target.key == autoSelectedKey) {
+            autoSelectedKey = null
+            navigator.navigateBack(BackNavigationBehavior.PopUntilContentChange)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -170,27 +214,41 @@ fun LumaApp(
                         onEventAction = onEventAction,
                         isBusy = actions::isBusy,
                         selectedPersonId = if (twoPane) (target as? DetailTarget.Person)?.id else null,
+                        asListPane = twoPane,
+                        headerModifier = Modifier.onSizeChanged { listHeaderHeight = with(density) { it.height.toDp() } },
                         viewModel = viewModel,
                     )
                 }
             },
             detailPane = {
-                AnimatedPane {
-                    when (target) {
-                        null -> if (twoPane) SelectPersonPlaceholder()
-                        else -> detailStates.SaveableStateProvider(target.key) {
-                            when (target) {
-                                is DetailTarget.Person -> PersonDetailRoute(
-                                    personId = target.id,
-                                    onBack = onBack,
-                                    actions = actions,
-                                    viewModel = viewModel,
-                                )
-                                DetailTarget.ShiftHistory -> ShiftHistoryRoute(
-                                    onBack = onBack,
-                                    onPersonClick = openPerson,
-                                    viewModel = viewModel,
-                                )
+                CompositionLocalProvider(LocalPaneHeaderHeight provides if (twoPane) listHeaderHeight else 0.dp) {
+                    AnimatedPane {
+                        when (target) {
+                            // Ohne Auswahl: der Schichtverlauf, wenn niemand offen ist; sonst (Laden, gleich folgende
+                            // Startauswahl) nur der leere Kopf in ShiftHeader-Höhe.
+                            null -> if (twoPane) {
+                                if (isReady && topPersonId == null) {
+                                    detailStates.SaveableStateProvider(DetailTarget.ShiftHistory.key) {
+                                        ShiftHistoryRoute(onBack = null, onPersonClick = openPerson, viewModel = viewModel)
+                                    }
+                                } else {
+                                    SubpageAppBar(title = null, onBack = null)
+                                }
+                            }
+                            else -> detailStates.SaveableStateProvider(target.key) {
+                                when (target) {
+                                    is DetailTarget.Person -> PersonDetailRoute(
+                                        personId = target.id,
+                                        onBack = onBack,
+                                        actions = actions,
+                                        viewModel = viewModel,
+                                    )
+                                    DetailTarget.ShiftHistory -> ShiftHistoryRoute(
+                                        onBack = onBack,
+                                        onPersonClick = openPerson,
+                                        viewModel = viewModel,
+                                    )
+                                }
                             }
                         }
                     }
@@ -278,23 +336,6 @@ private fun EventCommand.feedbackText(): String = when (this) {
     }
 }
 
-/** Detailbereich auf dem Tablet ohne Auswahl. Bewusst nicht „Alles erledigt“. */
-@Composable
-private fun SelectPersonPlaceholder() {
-    Column(modifier = Modifier.fillMaxSize()) {
-        SubpageAppBar(title = null, onBack = null)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            EmptyState(
-                title = stringResource(R.string.detail_select_person),
-                body = null,
-                icon = R.drawable.ic_back,
-                testTag = "detail_empty",
-            )
-        }
-    }
-}
+/** Oberste Person des Dashboards: erste Karte in Jetzt handeln, sonst Zeitnah prüfen, sonst Organisatorisches. */
+private fun DashboardModel.topPersonId(): String? =
+    (actNow.firstOrNull() ?: checkSoon.firstOrNull() ?: organizational.firstOrNull())?.resident?.id

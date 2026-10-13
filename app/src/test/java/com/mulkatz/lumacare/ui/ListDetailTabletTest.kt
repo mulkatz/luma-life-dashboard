@@ -13,7 +13,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToKey
@@ -89,16 +88,17 @@ class ListDetailTabletTest {
     }
 
     @Test
-    fun `ohne auswahl stehen dashboard links und die aufforderung rechts`() {
+    fun `ohne auswahl stehen dashboard links und die oberste person rechts`() {
         show()
-        awaitTag("detail_empty")
+        awaitTag("detail_hint_e005")
 
         compose.onNodeWithTag("shift_header").assertIsDisplayed()
-        compose.onNodeWithText("Wähle links eine Person aus.").assertIsDisplayed()
+        compose.onNodeWithTag("detail_hint_e005").assertIsDisplayed()
+        compose.onNodeWithTag("person_card_r04").assertIsSelected()
         compose.onNodeWithTag("empty_state").assertDoesNotExist()
 
         val list = compose.onNodeWithTag("shift_header").getUnclippedBoundsInRoot()
-        val detail = compose.onNodeWithTag("detail_empty").getUnclippedBoundsInRoot()
+        val detail = compose.onNodeWithTag("person_detail").getUnclippedBoundsInRoot()
         val listWidth = list.right - list.left
         assertTrue(listWidth >= 360.dp && listWidth <= 420.dp, "Liste ist $listWidth breit")
         assertTrue(list.right <= detail.left, "Detail (${detail.left}) beginnt vor dem Ende der Liste (${list.right})")

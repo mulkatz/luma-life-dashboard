@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -23,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -35,6 +37,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.inset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -45,7 +48,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.max
+import kotlin.math.min
 import com.mulkatz.lumacare.R
 import com.mulkatz.lumacare.domain.HourBlock
 import com.mulkatz.lumacare.domain.HourPhase
@@ -127,6 +132,8 @@ fun ShiftTimeline(
                     modifier = Modifier.size(LumaSizes.iconMedium),
                 )
             }
+            // Abstand, damit der Jetzt-Punkt über dem Block den Titel nicht berührt.
+            Spacer(modifier = Modifier.height(LumaTheme.spacing.s))
             HourBlockRow(hours)
         }
     }
@@ -206,22 +213,34 @@ private fun HourColumn(block: HourBlock, nowFraction: Float?, modifier: Modifier
                     .routineTicks(block.routineTicks, tickColor),
             )
         }
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            if (block.isNight) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_moon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(LumaSizes.iconSmall),
-                )
-            } else {
-                Text(
-                    text = TimeFormat.hour(block.start),
-                    style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
+        // Achse höchstens 130 % groß, sonst passen die Stunden bei großer Schrift nicht unter die Blöcke.
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, min(density.fontScale, AXIS_MAX_FONT_SCALE))) {
+            HourAxisLabel(block)
+        }
+    }
+}
+
+/** Größte Schriftskalierung der Stundenbeschriftung. */
+private const val AXIS_MAX_FONT_SCALE = 1.3f
+
+@Composable
+private fun HourAxisLabel(block: HourBlock) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        if (block.isNight) {
+            Icon(
+                painter = painterResource(R.drawable.ic_moon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(LumaSizes.iconSmall),
+            )
+        } else {
+            Text(
+                text = TimeFormat.hour(block.start),
+                style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }

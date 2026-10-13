@@ -1,6 +1,5 @@
 package com.mulkatz.lumacare.ui.history
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,10 +13,11 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
@@ -32,11 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -51,17 +49,19 @@ import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.HistoryEntry
 import com.mulkatz.lumacare.domain.isFromNightShift
 import com.mulkatz.lumacare.domain.Prioritizer
-import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.domain.ShiftHours
 import com.mulkatz.lumacare.domain.ShiftType
 import com.mulkatz.lumacare.ui.components.HourBlockLegend
 import com.mulkatz.lumacare.ui.components.HourBlockRow
+import com.mulkatz.lumacare.ui.components.IconLabel
+import com.mulkatz.lumacare.ui.components.ResolutionLabel
+import com.mulkatz.lumacare.ui.components.SectionHeader
+import com.mulkatz.lumacare.ui.components.TimeColumn
 import com.mulkatz.lumacare.ui.components.TimeFormat
 import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.SubpageAppBar
 import com.mulkatz.lumacare.ui.components.iconRes
 import com.mulkatz.lumacare.ui.components.labelRes
-import com.mulkatz.lumacare.ui.components.resolutionText
 import com.mulkatz.lumacare.ui.dashboard.DashboardPreviewData
 import com.mulkatz.lumacare.ui.dashboard.DashboardUiState
 import com.mulkatz.lumacare.ui.dashboard.DashboardViewModel
@@ -185,6 +185,7 @@ private fun HistoryContent(
                     tag = "history_group_current",
                     title = stringResource(R.string.shift_history_group_current, shiftLabel, shiftStart),
                     entries = history.currentShift,
+                    now = model.now,
                     currentShift = state.shift.type,
                     onPersonClick = onPersonClick,
                 )
@@ -200,6 +201,7 @@ private fun HistoryContent(
                         shiftStart,
                     ),
                     entries = history.previousShift,
+                    now = model.now,
                     currentShift = state.shift.type,
                     onPersonClick = onPersonClick,
                 )
@@ -253,6 +255,8 @@ private fun HoursCard(hours: ShiftHours, now: LocalDateTime) {
                     style = MaterialTheme.typography.titleMedium.tabularNumbers(),
                 )
             }
+            // Abstand, damit der Jetzt-Punkt den Titel nicht berührt.
+            Spacer(modifier = Modifier.height(LumaTheme.spacing.s))
             HourBlockRow(hours)
             HourBlockLegend()
         }
@@ -264,29 +268,23 @@ private fun HistoryGroup(
     tag: String,
     title: String,
     entries: List<HistoryEntry>,
+    now: LocalDateTime,
     currentShift: ShiftType,
     onPersonClick: (String) -> Unit,
 ) {
     Column(modifier = Modifier.contentWidth().testTag(tag)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(bottom = LumaTheme.spacing.m)
-                .semantics { heading() },
-        )
+        SectionHeader(title = title)
         HistoryCard {
             entries.forEachIndexed { index, entry ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                HistoryRow(entry, currentShift, onClick = { onPersonClick(entry.resident.id) })
+                HistoryRow(entry, now, currentShift, onClick = { onPersonClick(entry.resident.id) })
             }
         }
     }
 }
 
 @Composable
-private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: () -> Unit) {
+private fun HistoryRow(entry: HistoryEntry, now: LocalDateTime, currentShift: ShiftType, onClick: () -> Unit) {
     val tag = when (entry) {
         is HistoryEntry.Hint -> "history_item_${entry.event.id}"
         is HistoryEntry.PlannedRoutine -> "history_routine_${entry.routine.id}"
@@ -306,11 +304,7 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
             .padding(LumaTheme.spacing.l),
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.m),
     ) {
-        Text(
-            text = TimeFormat.clock(entry.time),
-            style = MaterialTheme.typography.titleSmall.tabularNumbers(),
-            modifier = Modifier.widthIn(min = LumaSizes.timeColumnMinWidth),
-        )
+        TimeColumn(time = entry.time, now = now)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
@@ -323,7 +317,7 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
                     is HistoryEntry.Hint -> {
                         val event = entry.event
                         val done = event.status == EventStatus.DONE
-                        Label(
+                        IconLabel(
                             icon = event.severity.iconRes,
                             text = stringResource(event.severity.labelRes),
                             // Erledigt: Dringlichkeit nur noch als Text, Icon neutral.
@@ -331,13 +325,13 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
                             textColor = MaterialTheme.colorScheme.onSurface,
                         )
                         when {
-                            done -> Label(
+                            done -> IconLabel(
                                 icon = R.drawable.ic_check_circle,
                                 text = stringResource(R.string.status_done),
                                 iconTint = LumaTheme.status.done.content,
                                 textColor = LumaTheme.status.done.content,
                             )
-                            isFromNightShift(event, Prioritizer.handling(event, currentShift)) -> Label(
+                            isFromNightShift(event, Prioritizer.handling(event, currentShift)) -> IconLabel(
                                 icon = R.drawable.ic_moon,
                                 text = stringResource(R.string.handling_from_night),
                                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -345,18 +339,13 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
                             )
                         }
                     }
-                    is HistoryEntry.PlannedRoutine -> Label(
+                    is HistoryEntry.PlannedRoutine -> IconLabel(
                         icon = R.drawable.ic_repeat,
                         text = stringResource(R.string.shift_history_routine),
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                         textColor = MaterialTheme.colorScheme.onSurface,
                     )
-                    is HistoryEntry.Resolved -> Label(
-                        icon = if (entry.entry.resolution == Resolution.FORWARDED) R.drawable.ic_forward else R.drawable.ic_check_circle,
-                        text = resolutionText(entry.entry.resolution, entry.entry.forwardedTo),
-                        iconTint = LumaTheme.status.done.content,
-                        textColor = LumaTheme.status.done.content,
-                    )
+                    is HistoryEntry.Resolved -> ResolutionLabel(entry.entry.resolution, entry.entry.forwardedTo)
                 }
             }
             Text(
@@ -366,22 +355,6 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
             // Originaltext ungekürzt; Hinweis statt Diagnose. Abschlüsse zeigen nur die Notiz, falls es eine gibt.
             if (text != null) Text(text = text, style = MaterialTheme.typography.bodyLarge)
         }
-    }
-}
-
-@Composable
-private fun Label(@DrawableRes icon: Int, text: String, iconTint: Color, textColor: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(LumaSizes.iconSmall),
-        )
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = textColor)
     }
 }
 

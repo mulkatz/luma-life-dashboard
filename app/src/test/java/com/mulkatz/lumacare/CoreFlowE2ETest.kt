@@ -128,11 +128,13 @@ class CoreFlowE2ETest {
         compose.onNode(hasText("Werte gemessen") and hasAnyAncestor(hasTestTag("detail_history"))).assert(hasText("Notiz"))
         compose.onNodeWithTag("note_sheet").assertDoesNotExist()
 
-        // 5. Abschließen „Erledigt“: ohne Notiz Inline-Fehler und inaktiver Button, mit Baustein abschließen.
+        // 5. Abschließen „Erledigt“: ohne Notiz neutraler Pflichthinweis (noch kein Fehler) und inaktiver Button,
+        //    mit Baustein abschließen.
         barAction("action_resolve").performClick()
         awaitExists(hasTestTag("resolution_sheet"))
         compose.onNodeWithTag("resolution_done").performClick().assertIsSelected()
-        compose.onNodeWithTag("note_error", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag("note_required_hint", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag("note_error", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag("action_confirm_resolve").assertIsNotEnabled()
         compose.onNodeWithTag("note_snippet_doctor").performClick()
         compose.onNodeWithTag("note_error", useUnmergedTree = true).assertDoesNotExist()
