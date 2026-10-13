@@ -87,6 +87,8 @@ fun PersonCard(
     modifier: Modifier = Modifier,
     /** Gewählt im List-Detail (Tablet): Rand `primary` 2 dp, Semantik `selected`. */
     selected: Boolean = false,
+    /** `false`, solange eine Aktion zu diesem Hinweis gespeichert wird (kein Doppeltipp). */
+    actionEnabled: Boolean = true,
 ) {
     val res = LocalResources.current
     val resident = entry.resident
@@ -193,7 +195,7 @@ fun PersonCard(
             }
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                EventActionButton(action = lead.action, onClick = onAction)
+                EventActionButton(action = lead.action, onClick = onAction, enabled = actionEnabled)
             }
         }
     }
@@ -202,15 +204,20 @@ fun PersonCard(
 /** Hinweistext auf der Karte bei Schrift ≤ 100 %; darüber unbegrenzt. */
 private const val SUMMARY_MAX_LINES = 3
 
-/** Metazeile des Hinweises: „vor 45 Min. · 06:30“ bzw. „Aus Nachtdienst · gestern 23:15“. */
+/**
+ * Metazeile des Hinweises: „vor 45 Min. · 06:30“, „Aus Nachtdienst · gestern 23:15“ bzw. beim eigenen
+ * Fall „Bei dir · vor 45 Min. · 06:30“.
+ */
 @Composable
 private fun hintMetaText(entry: EventEntry, now: LocalDateTime): String {
     val res = LocalResources.current
     val time = entry.event.timestamp
-    return if (entry.isFromNightShift) {
-        res.getString(R.string.hint_meta, res.getString(R.string.handling_from_night), TimeFormat.clockLabel(res, time, now))
-    } else {
-        TimeFormat.ageAndClock(res, time, now)
+    return when {
+        entry.isFromNightShift ->
+            res.getString(R.string.hint_meta, res.getString(R.string.handling_from_night), TimeFormat.clockLabel(res, time, now))
+        entry.handling == Handling.OWN ->
+            res.getString(R.string.hint_meta, res.getString(R.string.handling_own), TimeFormat.ageAndClock(res, time, now))
+        else -> TimeFormat.ageAndClock(res, time, now)
     }
 }
 
@@ -220,9 +227,14 @@ private fun HintMeta(entry: EventEntry, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LumaTheme.spacing.xs),
     ) {
-        if (entry.isFromNightShift) {
+        val icon = when {
+            entry.isFromNightShift -> R.drawable.ic_moon
+            entry.handling == Handling.OWN -> R.drawable.ic_person
+            else -> null
+        }
+        if (icon != null) {
             Icon(
-                painter = painterResource(R.drawable.ic_moon),
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(LumaSizes.iconSmall),
@@ -297,40 +309,54 @@ val EventAction.labelRes: Int
         EventAction.CONFIRM_HANDOVER -> R.string.action_confirm_handover
         EventAction.RESOLVE -> R.string.action_resolve
         EventAction.FORWARD -> R.string.action_forward
+        EventAction.ACKNOWLEDGE -> R.string.action_acknowledge
     }
 
-/** testTag-Name der Aktion: `action_take_over`, `action_confirm_handover`, `action_resolve`, `action_forward`. */
+/**
+ * testTag-Name der Aktion: `action_take_over`, `action_confirm_handover`, `action_resolve`, `action_forward`,
+ * `action_acknowledge`.
+ */
 val EventAction.testTag: String get() = "action_${name.lowercase()}"
 
-/** Schnellaktion: Weiterleiten umrandet mit Icon, sonst gefüllt. Mindestens 48 dp hoch. */
+/**
+ * Aktion eines Hinweises: Weiterleiten (bzw. [outlined]) umrandet, sonst gefüllt; Weiterleiten mit Icon.
+ * Mindestens 48 dp hoch. [enabled] `false` sperrt sie, solange gespeichert wird.
+ */
 @Composable
-fun EventActionButton(action: EventAction, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun EventActionButton(
+    action: EventAction,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    outlined: Boolean = action == EventAction.FORWARD,
+) {
     val buttonModifier = modifier
         .heightIn(min = LumaSizes.minTouchTarget)
         .testTag(action.testTag)
-    if (action == EventAction.FORWARD) {
-        OutlinedButton(onClick = onClick, modifier = buttonModifier) {
+    val content: @Composable () -> Unit = {
+        if (action == EventAction.FORWARD) {
             Icon(
                 painter = painterResource(R.drawable.ic_forward),
                 contentDescription = null,
-                modifier = Modifier.size(LumaSizes.iconSmall),
-            )
-            Text(
-                text = stringResource(action.labelRes),
-                modifier = Modifier.padding(start = LumaTheme.spacing.s),
+                modifier = Modifier
+                    .padding(end = LumaTheme.spacing.s)
+                    .size(LumaSizes.iconSmall),
             )
         }
+        Text(text = stringResource(action.labelRes))
+    }
+    if (outlined) {
+        OutlinedButton(onClick = onClick, modifier = buttonModifier, enabled = enabled) { content() }
     } else {
         Button(
             onClick = onClick,
             modifier = buttonModifier,
+            enabled = enabled,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
-        ) {
-            Text(text = stringResource(action.labelRes))
-        }
+        ) { content() }
     }
 }
 

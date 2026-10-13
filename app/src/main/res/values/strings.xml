@@ -35,6 +35,57 @@
     <string name="action_confirm_handover">Übernahme bestätigen</string>
     <string name="action_resolve">Abschließen</string>
     <string name="action_forward">Weiterleiten</string>
+    <string name="action_acknowledge">Zur Kenntnis</string>
+    <string name="action_note">Notiz</string>
+    <string name="action_release">Zurückgeben</string>
+    <string name="action_save_note">Notiz speichern</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="handling_own">Bei dir</string>
+
+    <!-- Abschluss und Weiterleiten -->
+    <string name="resolution_sheet_title">Abschließen</string>
+    <string name="resolution_done">Erledigt</string>
+    <string name="resolution_forwarded_option">Weitergeleitet an …</string>
+    <string name="resolution_no_action_needed">Kein Handlungsbedarf</string>
+    <string name="resolution_acknowledged">Zur Kenntnis genommen</string>
+    <string name="forward_targets_title">Weiterleiten an</string>
+    <string name="forward_target_kitchen">Küche</string>
+    <string name="forward_target_maintenance">Haustechnik</string>
+    <string name="forward_target_social_service">Sozialdienst</string>
+    <string name="forward_target_administration">Verwaltung</string>
+
+    <!-- Notiz -->
+    <string name="note_sheet_title">Notiz</string>
+    <string name="note_label_required">Notiz</string>
+    <string name="note_label_optional">Notiz (optional)</string>
+    <string name="note_error">Bitte kurz notieren, was du getan hast.</string>
+    <string name="note_chip_seen">Gesehen, wohlauf</string>
+    <string name="note_chip_doctor">Arzt informiert</string>
+    <string name="note_chip_measured">Werte gemessen</string>
+    <string name="note_chip_family">Angehörige informiert</string>
+    <string name="note_chip_spoken">Baustein einfügen: %1$s</string>
+
+    <!-- Verlauf: Aktionen der Pflege -->
+    <string name="history_assigned">Übernommen (%1$s)</string>
+    <string name="history_handover_confirmed">Übernahme bestätigt</string>
+    <string name="history_released">Zurückgegeben</string>
+    <string name="history_note">Notiz</string>
+    <string name="history_resolved">Abgeschlossen: %1$s</string>
+    <string name="history_forwarded">Weitergeleitet an %1$s</string>
+    <string name="history_hint_reference">Zum Hinweis von %1$s</string>
+    <string name="history_note_quoted">Notiz „%1$s“</string>
+
+    <!-- Snackbar -->
+    <string name="snackbar_taken_over">Übernommen</string>
+    <string name="snackbar_handover_confirmed">Übernahme bestätigt</string>
+    <string name="snackbar_released">Zurückgegeben</string>
+    <string name="snackbar_note_saved">Notiz gespeichert</string>
+    <string name="snackbar_resolved">Abgeschlossen</string>
+    <string name="snackbar_stale">Wurde inzwischen geändert</string>
+    <string name="snackbar_undo_failed">Konnte nicht rückgängig gemacht werden</string>
+
+    <!-- In dieser Schicht erledigt -->
+    <string name="section_done">In dieser Schicht erledigt</string>
 
     <!-- Personenkarte -->
     <string name="person_meta_spoken">Zimmer %1$s, Pflegegrad %2$d</string>

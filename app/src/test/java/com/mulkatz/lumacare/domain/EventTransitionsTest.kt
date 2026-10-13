@@ -311,4 +311,22 @@ class EventTransitionsTest {
             assertEquals(result.newState.status, EventTransitions.statusAfter(result.action, event.status), "$command")
         }
     }
+
+    @Test
+    fun `zur kenntnis nur für info ohne health_hint, notiz optional`() {
+        val mood = event("e017", EventType.MOOD, Severity.INFO)
+        val missed = event("e007", EventType.MISSED_CALL, Severity.INFO)
+
+        val acknowledged = assertAllowed(missed, Resolve(Resolution.ACKNOWLEDGED))
+        assertEquals(EventState(DONE, EARLY, Resolution.ACKNOWLEDGED), acknowledged.newState)
+        assertEquals(EventActionType.RESOLVE, acknowledged.action)
+        assertAllowed(mood.own(), Resolve(Resolution.ACKNOWLEDGED, note = "Gesehen, wohlauf"))
+        assertRejected(NOTE_TOO_SHORT, mood, Resolve(Resolution.ACKNOWLEDGED, note = "ok"))
+
+        assertRejected(NOT_ALLOWED, event("e026", EventType.HEALTH_HINT, Severity.INFO), Resolve(Resolution.ACKNOWLEDGED))
+        assertRejected(NOT_ALLOWED, e015, Resolve(Resolution.ACKNOWLEDGED))
+        assertRejected(NOT_ALLOWED, e018, Resolve(Resolution.ACKNOWLEDGED))
+        assertRejected(NOT_ALLOWED, mood.copy(status = IN_PROGRESS, assignedTo = NIGHT), Resolve(Resolution.ACKNOWLEDGED))
+        assertRejected(NOT_ALLOWED, mood, Resolve(Resolution.ACKNOWLEDGED, forwardedTo = ForwardTarget.KITCHEN))
+    }
 }

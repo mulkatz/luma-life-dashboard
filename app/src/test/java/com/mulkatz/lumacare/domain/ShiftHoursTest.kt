@@ -204,5 +204,6 @@ class ShiftHoursTest {
     private fun HistoryEntry.id(): String = when (this) {
         is HistoryEntry.Hint -> event.id
         is HistoryEntry.PlannedRoutine -> routine.id
+        is HistoryEntry.Resolved -> "done_${entry.event.id}"
     }
 }

@@ -8,12 +8,19 @@ data class RoutineToday(
     val time: LocalDateTime,
 )
 
-/** Eintrag im Personenverlauf: ein Luma-Hinweis, auch erledigt. */
+/**
+ * Eintrag im Personenverlauf zu einem Hinweis: der Luma-Hinweis selbst (auch erledigt) oder, mit [action],
+ * eine Aktion der Pflege dazu (übernommen, bestätigt, zurückgegeben, Notiz, Abschluss). Ohne Namen der
+ * Pflege, es gibt kein Login.
+ */
 data class PersonHistoryEntry(
     val event: LumaEvent,
-    /** Gleiche Regel wie auf der Karte ([isFromNightShift]); erledigte Hinweise nie. */
+    /** Gleiche Regel wie auf der Karte ([isFromNightShift]); erledigte Hinweise und Aktionen nie. */
     val isFromNightShift: Boolean,
+    /** `null`: der Eintrag ist der Hinweis selbst. */
+    val action: LoggedAction? = null,
 ) {
+    val time: LocalDateTime get() = action?.time ?: event.timestamp
     val isDone: Boolean get() = event.status == EventStatus.DONE
 }
 
@@ -28,7 +35,10 @@ data class PersonDetail(
     val routinesToday: List<RoutineToday>,
     /** Angemeldete Aktivitäten, die in der laufenden Schicht beginnen, aufsteigend. */
     val activities: List<Activity>,
-    /** Alle Hinweise der Person im Fenster [20:00 des Vortags, Schichtende), jüngste zuerst. */
+    /**
+     * Hinweise und Aktionen der Person im Fenster [20:00 des Vortags, Schichtende), jüngste zuerst; bei
+     * gleicher Zeit die Aktion vor dem Hinweis, neuere Aktion zuerst.
+     */
     val history: List<PersonHistoryEntry>,
 ) {
     companion object {
@@ -54,8 +64,9 @@ data class PersonDetail(
                 .sortedWith(compareBy({ it.start }, { it.id }))
 
             val windowStart = Prioritizer.timelineStart(shift)
-            val history = events
-                .filter { !it.timestamp.isBefore(windowStart) && it.timestamp.isBefore(shift.end) }
+            fun inWindow(time: LocalDateTime) = !time.isBefore(windowStart) && time.isBefore(shift.end)
+            val hints = events
+                .filter { inWindow(it.timestamp) }
                 .sortedWith(compareByDescending<LumaEvent> { it.timestamp }.thenBy { it.id })
                 .map { event ->
                     PersonHistoryEntry(
@@ -63,6 +74,12 @@ data class PersonDetail(
                         isFromNightShift = event.isOpen && isFromNightShift(event, Prioritizer.handling(event, shift.type)),
                     )
                 }
+            val actions = ActionLog.entries(data)
+                .filter { it.event.residentId == residentId && inWindow(it.time) }
+                .sortedByDescending { it.record.id }
+                .map { PersonHistoryEntry(event = it.event, isFromNightShift = false, action = it) }
+            // Stabil sortiert: bei gleicher Zeit bleiben Aktionen (neueste zuerst) vor den Hinweisen.
+            val history = (actions + hints).sortedByDescending { it.time }
 
             return PersonDetail(
                 resident = resident,

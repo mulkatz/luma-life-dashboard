@@ -68,6 +68,8 @@ sealed interface TransitionResult {
  *   - Notiz Pflicht bei `health_hint` und `urgent`, unabhängig vom Ausgangsstatus;
  *   - **Weiterleiten** nur für [Prioritizer.FORWARD_TYPES], aus `open` und eigenem `in_progress`,
  *     Ziel Pflicht; Notiz Pflicht bei `urgent`, sonst optional. Die Regeln für `open` oben gelten hier nicht.
+ *   - **Zur Kenntnis** ([Resolution.ACKNOWLEDGED]) nur für `info` ohne `health_hint`
+ *     ([Prioritizer.canAcknowledge]), Notiz optional.
  * - **Notiz** geht für alles, was nicht `done` ist, und ist dann Pflicht.
  * - Eine Notiz ist gültig, wenn sie nach `trim()` mindestens [MIN_NOTE_LENGTH] Zeichen hat. Eine optionale
  *   Notiz darf leer sein, eine angegebene muss trotzdem gültig sein.
@@ -130,6 +132,10 @@ object EventTransitions {
             }
         }
         if (command.forwardedTo != null) return NOT_ALLOWED
+        if (command.resolution == Resolution.ACKNOWLEDGED) {
+            if (!Prioritizer.canAcknowledge(event)) return NOT_ALLOWED
+            return withNote(command.note, required = false) { allowed(done, EventActionType.RESOLVE, it) }
+        }
 
         val fromOpenNeedsNote = when (event.severity) {
             Severity.URGENT -> if (handling == Handling.UNATTENDED) return NOT_ALLOWED else true

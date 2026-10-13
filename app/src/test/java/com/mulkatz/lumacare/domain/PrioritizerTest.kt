@@ -149,7 +149,7 @@ class PrioritizerTest {
     }
 
     @Test
-    fun `request essenswunsch und angehörigennachricht werden weitergeleitet, auch wenn dringend`() {
+    fun `request essenswunsch und angehörigennachricht werden weitergeleitet, auch wenn dringend, eigene abgeschlossen`() {
         val model = build(
             residents = listOf(resident("a")),
             events = listOf(
@@ -167,10 +167,72 @@ class PrioritizerTest {
         val actions = model.actNow.single().events.associate { it.event.id to it.action }
         assertEquals(EventAction.FORWARD, actions["e1"])
         assertEquals(EventAction.FORWARD, actions["e2"])
+        // Eigener Fall: Abschließen; das Sheet bietet das Weiterleiten an.
+        assertEquals(EventAction.RESOLVE, actions["e3"])
+        assertEquals(EventAction.ACKNOWLEDGE, actions["e4"])
+        assertEquals(EventAction.ACKNOWLEDGE, actions["e5"])
+    }
+
+    @Test
+    fun `zur kenntnis nur für offene info ohne health_hint und ohne weiterleiten-typ`() {
+        val model = build(
+            residents = listOf(resident("a")),
+            events = listOf(
+                event("e1", "a", Severity.INFO, type = EventType.MOOD),
+                event("e2", "a", Severity.INFO, type = EventType.HEALTH_HINT),
+                event("e3", "a", Severity.INFO, type = EventType.MEAL_WISH),
+                event("e4", "a", Severity.ATTENTION, type = EventType.MOOD),
+                event("e5", "a", Severity.INFO, type = EventType.MOOD, status = EventStatus.IN_PROGRESS, assignedTo = ShiftType.EARLY),
+            ),
+        )
+
+        val actions = model.checkSoon.single().events.associate { it.event.id to it.action }
+        assertEquals(EventAction.ACKNOWLEDGE, actions["e1"])
+        assertEquals(EventAction.TAKE_OVER, actions["e2"])
         assertEquals(EventAction.FORWARD, actions["e3"])
         assertEquals(EventAction.TAKE_OVER, actions["e4"])
-        assertEquals(EventAction.TAKE_OVER, actions["e5"])
+        assertEquals(EventAction.RESOLVE, actions["e5"])
     }
+
+    @Test
+    fun `in dieser schicht erledigt zeigt bestehende abschlüsse ab schichtbeginn, jüngste zuerst`() {
+        val residents = listOf(resident("a"), resident("b"))
+        val done = event("e1", "a", Severity.INFO, EventStatus.DONE, type = EventType.MEAL_WISH)
+            .copy(assignedTo = ShiftType.EARLY, resolution = Resolution.FORWARDED)
+        val doneBefore = event("e2", "b", Severity.INFO, EventStatus.DONE, type = EventType.MOOD)
+            .copy(assignedTo = ShiftType.NIGHT, resolution = Resolution.ACKNOWLEDGED)
+        val doneLater = event("e3", "b", Severity.ATTENTION, EventStatus.DONE)
+            .copy(assignedTo = ShiftType.EARLY, resolution = Resolution.DONE)
+        val openState = EventState(EventStatus.OPEN, null, null)
+        val actions = listOf(
+            record(1, "e1", EventActionType.RESOLVE, at("07:00"), openState, forwardedTo = ForwardTarget.KITCHEN),
+            record(2, "e2", EventActionType.RESOLVE, at("05:50"), openState),
+            record(3, "e3", EventActionType.RESOLVE, at("07:10"), openState, note = "Werte gemessen"),
+        )
+        val model = Prioritizer.build(
+            CareData(residents, listOf(done, doneBefore, doneLater), emptyList(), emptyList(), actions),
+            now,
+            early,
+        )
+
+        assertEquals(listOf("e3", "e1"), model.doneInShift.map { it.event.id })
+        assertEquals(listOf(Resolution.DONE, Resolution.FORWARDED), model.doneInShift.map { it.resolution })
+        assertEquals(ForwardTarget.KITCHEN, model.doneInShift[1].forwardedTo)
+        assertEquals("Werte gemessen", model.doneInShift[0].note)
+        // Der Abschluss vor Schichtbeginn steht im Schichtverlauf unter Vorschicht.
+        assertTrue(model.history.previousShift.any { it is HistoryEntry.Resolved && it.entry.event.id == "e2" })
+        assertTrue(model.history.currentShift.any { it is HistoryEntry.Resolved && it.entry.event.id == "e1" })
+    }
+
+    private fun record(
+        id: Long,
+        eventId: String,
+        type: EventActionType,
+        createdAt: LocalDateTime,
+        previous: EventState,
+        note: String? = null,
+        forwardedTo: ForwardTarget? = null,
+    ) = EventActionRecord(id, eventId, type, createdAt, note, forwardedTo, previous)
 
     @Test
     fun `vorschicht-request zuerst übernahme bestätigen, nicht weiterleiten`() {

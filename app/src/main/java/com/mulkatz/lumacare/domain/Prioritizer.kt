@@ -17,8 +17,10 @@ import java.time.LocalTime
  *   nach ihm werden die Personen im Abschnitt sortiert. Die Hinweise einer Person stehen nach
  *   Dringlichkeit, dann Schlüssel; der maßgebliche ist damit der erste.
  * - **Aktion:** Vorschicht → Übernahme bestätigen, immer zuerst (auch Weiterleiten erst danach).
+ *   Eigene → Abschließen (das Sheet bietet bei Weiterleiten-Typen das Weiterleiten an).
  *   Sonst `request`, `meal_wish`, `family_message` → Weiterleiten, unabhängig von der Dringlichkeit;
- *   übrige `open` → Übernehmen, eigene → Abschließen.
+ *   `info` ohne `health_hint` → Zur Kenntnis; übrige `open` → Übernehmen.
+ *   Jede Aktion ist ein Befehl, den `EventTransitions` im jeweiligen Zustand erlaubt.
  * - **Demnächst:** Routinetermine (Wochentag passend) und Aktivitäten im Fenster [now, now+60 min].
  *   Hat die Person der Routine bzw. eine angemeldete Person offene Hinweise, wird je Person deren
  *   maßgeblicher Hinweis verknüpft ([UpcomingItem.openHints]). Keine Bewertung als Konflikt.
@@ -27,7 +29,8 @@ import java.time.LocalTime
  * - **Kennzahlen** zählen einheitlich Personen: in „Jetzt handeln“, in „Zeitnah prüfen“, mit
  *   Vorschicht-Hinweis ohne Übernahme, mit offenem `missed_call`.
  * - **Zeitleiste:** Fenster [20:00 des Vortags, Schichtende), ausgelegt auf den Frühdienst; daraus
- *   [ShiftHours] (Stundenblöcke) und [ShiftHistory] (chronologische Liste).
+ *   [ShiftHours] (Stundenblöcke) und [ShiftHistory] (chronologische Liste, mit den Abschlüssen).
+ * - **In dieser Schicht erledigt:** Abschlüsse ab Schichtbeginn, die noch Bestand haben, jüngste zuerst.
  */
 object Prioritizer {
     val NEARBY_WINDOW: Duration = Duration.ofMinutes(60)
@@ -52,6 +55,7 @@ object Prioritizer {
         val organizational = bySeverity[Severity.INFO].orEmpty()
         val leadByResident = entries.associate { it.resident.id to it.leadEvent.event }
         val timeline = timeline(data, residents, now, shift)
+        val resolved = ActionLog.resolved(data)
 
         return DashboardModel(
             now = now,
@@ -67,7 +71,8 @@ object Prioritizer {
             ),
             timeline = timeline,
             hours = ShiftHours.from(timeline, now),
-            history = ShiftHistory.from(timeline, now),
+            history = ShiftHistory.from(timeline, now, resolved),
+            doneInShift = resolved.filter { !it.time.isBefore(shift.start) },
         )
     }
 
@@ -79,10 +84,15 @@ object Prioritizer {
 
     fun action(event: LumaEvent, handling: Handling): EventAction = when {
         handling == Handling.PREVIOUS_SHIFT -> EventAction.CONFIRM_HANDOVER
+        handling == Handling.OWN -> EventAction.RESOLVE
         event.type in FORWARD_TYPES -> EventAction.FORWARD
-        handling == Handling.UNATTENDED -> EventAction.TAKE_OVER
-        else -> EventAction.RESOLVE
+        canAcknowledge(event) -> EventAction.ACKNOWLEDGE
+        else -> EventAction.TAKE_OVER
     }
+
+    /** „Zur Kenntnis“ gibt es nur für `info` ohne `health_hint`; gilt auch für [EventTransitions]. */
+    fun canAcknowledge(event: LumaEvent): Boolean =
+        event.severity == Severity.INFO && event.type != EventType.HEALTH_HINT
 
     /** Schlüssel innerhalb gleicher Dringlichkeit: Zuständigkeit, Alter, Zimmer, ID. */
     private val personOrder: Comparator<PersonEntry> =

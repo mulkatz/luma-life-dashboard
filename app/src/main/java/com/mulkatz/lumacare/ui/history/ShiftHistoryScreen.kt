@@ -51,6 +51,7 @@ import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.HistoryEntry
 import com.mulkatz.lumacare.domain.isFromNightShift
 import com.mulkatz.lumacare.domain.Prioritizer
+import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.domain.ShiftHours
 import com.mulkatz.lumacare.domain.ShiftType
 import com.mulkatz.lumacare.ui.components.HourBlockLegend
@@ -60,10 +61,10 @@ import com.mulkatz.lumacare.ui.components.colors
 import com.mulkatz.lumacare.ui.components.SubpageAppBar
 import com.mulkatz.lumacare.ui.components.iconRes
 import com.mulkatz.lumacare.ui.components.labelRes
+import com.mulkatz.lumacare.ui.components.resolutionText
 import com.mulkatz.lumacare.ui.dashboard.DashboardPreviewData
 import com.mulkatz.lumacare.ui.dashboard.DashboardUiState
 import com.mulkatz.lumacare.ui.dashboard.DashboardViewModel
-import com.mulkatz.lumacare.ui.dashboard.labelRes
 import com.mulkatz.lumacare.ui.theme.LumaSizes
 import com.mulkatz.lumacare.ui.theme.LumaTheme
 import com.mulkatz.lumacare.ui.theme.tabularNumbers
@@ -91,7 +92,8 @@ fun ShiftHistoryRoute(
 
 /**
  * Schichtverlauf ohne eigenen Zustand: oben die Stundenblöcke mit Legende, darunter alle Hinweise der
- * Zeitleiste und die Routinen bis jetzt, jüngste oben, gruppiert nach laufender Schicht und Vorschicht.
+ * Zeitleiste, die Routinen bis jetzt und die Abschlüsse bzw. Weiterleitungen der Pflege, jüngste oben,
+ * gruppiert nach laufender Schicht und Vorschicht.
  * [onBack] `null` heißt Detailbereich auf dem Tablet, ohne Zurück.
  */
 @Composable
@@ -288,10 +290,12 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
     val tag = when (entry) {
         is HistoryEntry.Hint -> "history_item_${entry.event.id}"
         is HistoryEntry.PlannedRoutine -> "history_routine_${entry.routine.id}"
+        is HistoryEntry.Resolved -> "history_resolved_${entry.entry.event.id}"
     }
     val text = when (entry) {
         is HistoryEntry.Hint -> entry.event.summary
         is HistoryEntry.PlannedRoutine -> entry.routine.title
+        is HistoryEntry.Resolved -> entry.entry.note?.let { stringResource(R.string.history_note_quoted, it) }
     }
     Row(
         modifier = Modifier
@@ -347,14 +351,20 @@ private fun HistoryRow(entry: HistoryEntry, currentShift: ShiftType, onClick: ()
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                         textColor = MaterialTheme.colorScheme.onSurface,
                     )
+                    is HistoryEntry.Resolved -> Label(
+                        icon = if (entry.entry.resolution == Resolution.FORWARDED) R.drawable.ic_forward else R.drawable.ic_check_circle,
+                        text = resolutionText(entry.entry.resolution, entry.entry.forwardedTo),
+                        iconTint = LumaTheme.status.done.content,
+                        textColor = LumaTheme.status.done.content,
+                    )
                 }
             }
             Text(
                 text = stringResource(R.string.name_and_room, entry.resident.fullName, entry.resident.room),
                 style = MaterialTheme.typography.titleSmall,
             )
-            // Originaltext ungekürzt; Hinweis statt Diagnose.
-            Text(text = text, style = MaterialTheme.typography.bodyLarge)
+            // Originaltext ungekürzt; Hinweis statt Diagnose. Abschlüsse zeigen nur die Notiz, falls es eine gibt.
+            if (text != null) Text(text = text, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

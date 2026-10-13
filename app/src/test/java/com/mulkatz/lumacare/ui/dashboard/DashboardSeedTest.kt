@@ -8,12 +8,19 @@ import com.mulkatz.lumacare.domain.ContextChip
 import com.mulkatz.lumacare.domain.DashboardMetrics
 import com.mulkatz.lumacare.domain.DashboardModel
 import com.mulkatz.lumacare.domain.EventAction
+import com.mulkatz.lumacare.domain.EventCommand
+import com.mulkatz.lumacare.domain.EventStatus
+import com.mulkatz.lumacare.domain.EventTransitions
+import com.mulkatz.lumacare.domain.ForwardTarget
 import com.mulkatz.lumacare.domain.Handling
 import com.mulkatz.lumacare.domain.HistoryEntry
 import com.mulkatz.lumacare.domain.HourPhase
 import com.mulkatz.lumacare.domain.NowMarker
 import com.mulkatz.lumacare.domain.Prioritizer
+import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.domain.Severity
+import com.mulkatz.lumacare.domain.ShiftType
+import com.mulkatz.lumacare.domain.TransitionResult
 import com.mulkatz.lumacare.domain.UpcomingItem
 import com.mulkatz.lumacare.testing.InMemoryAppStateStore
 import com.mulkatz.lumacare.testing.inMemoryDatabase
@@ -28,6 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** Echter Seed, In-Memory-DB, `now` = Mo 12.10.2026, 07:15 (Frühdienst). */
@@ -50,8 +58,39 @@ class DashboardSeedTest {
     @After
     fun tearDown() = db.close()
 
+    private companion object {
+        const val NOTE = "Gesehen, wohlauf"
+    }
+
     private fun person(id: String) =
         (model.actNow + model.checkSoon + model.organizational).single { it.resident.id == id }
+
+    @Test
+    fun `jede aktion ist ein befehl, den eventtransitions im angezeigten zustand erlaubt`() {
+        val entries = (model.actNow + model.checkSoon + model.organizational).flatMap { it.events }
+        assertEquals(18, entries.size)
+
+        entries.forEach { entry ->
+            val command = entry.action.directCommand ?: when (entry.action) {
+                EventAction.FORWARD -> EventCommand.Resolve(Resolution.FORWARDED, NOTE, ForwardTarget.KITCHEN)
+                else -> EventCommand.Resolve(Resolution.DONE, NOTE)
+            }
+            assertIs<TransitionResult.Allowed>(
+                EventTransitions.apply(entry.event, ShiftType.EARLY, command),
+                "${entry.event.id}: ${entry.action}",
+            )
+        }
+
+        // Nach Übernehmen bzw. Bestätigen ist der Fall der eigene: Abschließen, und das ist erlaubt.
+        entries.filter { it.action == EventAction.TAKE_OVER || it.action == EventAction.CONFIRM_HANDOVER }.forEach { entry ->
+            val own = entry.event.copy(status = EventStatus.IN_PROGRESS, assignedTo = ShiftType.EARLY)
+            assertEquals(EventAction.RESOLVE, Prioritizer.action(own, Prioritizer.handling(own, ShiftType.EARLY)))
+            assertIs<TransitionResult.Allowed>(
+                EventTransitions.apply(own, ShiftType.EARLY, EventCommand.Resolve(Resolution.DONE, NOTE)),
+                entry.event.id,
+            )
+        }
+    }
 
     @Test
     fun `jetzt handeln zeigt werner hoffmann vor rudolf schmidt`() {
@@ -158,6 +197,7 @@ class DashboardSeedTest {
             when (it) {
                 is HistoryEntry.Hint -> it.event.id
                 is HistoryEntry.PlannedRoutine -> it.routine.id
+                is HistoryEntry.Resolved -> "done_${it.entry.event.id}"
             }
         }
 

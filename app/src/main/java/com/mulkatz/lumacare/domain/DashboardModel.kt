@@ -17,8 +17,10 @@ data class DashboardModel(
     val timeline: Timeline,
     /** [timeline] als Stundenblöcke für die Karte „Schichtverlauf“. */
     val hours: ShiftHours,
-    /** [timeline] als chronologische Liste für den Screen „Schichtverlauf“. */
+    /** [timeline] als chronologische Liste für den Screen „Schichtverlauf“, mit den Abschlüssen. */
     val history: ShiftHistory,
+    /** Abschlüsse ab Schichtbeginn, die noch Bestand haben, jüngste zuerst („In dieser Schicht erledigt“). */
+    val doneInShift: List<ResolvedEntry>,
 )
 
 /** Eine Personenkarte: alle offenen Hinweise der Person, der maßgebliche zuerst. */
@@ -59,8 +61,27 @@ enum class Handling {
     OWN,
 }
 
-/** Schnellaktion für einen Hinweis. Nur die Auswahl; die Übergänge selbst regelt `EventTransitions`. */
-enum class EventAction { TAKE_OVER, CONFIRM_HANDOVER, RESOLVE, FORWARD }
+/**
+ * Schnellaktion für einen Hinweis. Nur die Auswahl; die Übergänge selbst regelt `EventTransitions`.
+ * [ACKNOWLEDGE] ist „Zur Kenntnis“ (Abschluss als [Resolution.ACKNOWLEDGED]).
+ */
+enum class EventAction {
+    TAKE_OVER,
+    CONFIRM_HANDOVER,
+    RESOLVE,
+    FORWARD,
+    ACKNOWLEDGE,
+    ;
+
+    /** Befehl, den die Aktion ohne weitere Eingabe ausführt; `null` bei Abschließen und Weiterleiten (Sheet). */
+    val directCommand: EventCommand?
+        get() = when (this) {
+            TAKE_OVER -> EventCommand.TakeOver
+            CONFIRM_HANDOVER -> EventCommand.ConfirmHandover
+            ACKNOWLEDGE -> EventCommand.Resolve(Resolution.ACKNOWLEDGED)
+            RESOLVE, FORWARD -> null
+        }
+}
 
 /** Kontext zu einer Person, ausschließlich aus den Daten abgeleitet. */
 sealed interface ContextChip {

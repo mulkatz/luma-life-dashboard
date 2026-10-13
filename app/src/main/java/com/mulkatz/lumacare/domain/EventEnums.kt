@@ -17,8 +17,11 @@ enum class EventType {
     MISSED_CALL,
 }
 
-/** Abschlussart eines erledigten Hinweises. */
-enum class Resolution { DONE, FORWARDED, NO_ACTION_NEEDED }
+/**
+ * Abschlussart eines erledigten Hinweises. [ACKNOWLEDGED] ist „Zur Kenntnis“: ein `info`-Hinweis ohne
+ * Handlungsbedarf, direkt aus der Karte abgeschlossen. Eigener Wert, damit der Verlauf nur zeigt, was geschah.
+ */
+enum class Resolution { DONE, FORWARDED, NO_ACTION_NEEDED, ACKNOWLEDGED }
 
 /** Schicht, der ein Hinweis zugeordnet ist. */
 enum class ShiftType { EARLY, NIGHT }

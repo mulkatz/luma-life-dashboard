@@ -2,7 +2,7 @@ package com.mulkatz.lumacare.domain
 
 import java.time.LocalDateTime
 
-/** Eintrag im Schichtverlauf: ein Luma-Hinweis oder ein geplanter Routinetermin. */
+/** Eintrag im Schichtverlauf: ein Luma-Hinweis, ein geplanter Routinetermin oder ein Abschluss der Pflege. */
 sealed interface HistoryEntry {
     val time: LocalDateTime
     val resident: Resident
@@ -18,6 +18,12 @@ sealed interface HistoryEntry {
         override val resident: Resident,
         override val time: LocalDateTime,
     ) : HistoryEntry
+
+    /** Abschluss bzw. Weiterleitung eines Hinweises zur Uhrzeit der Aktion. */
+    data class Resolved(val entry: ResolvedEntry) : HistoryEntry {
+        override val time: LocalDateTime get() = entry.time
+        override val resident: Resident get() = entry.resident
+    }
 }
 
 /** Chronologische Liste der Zeitleiste, jüngste zuerst, getrennt nach laufender Schicht und Vorschicht. */
@@ -28,22 +34,26 @@ data class ShiftHistory(
     val previousShift: List<HistoryEntry>,
 ) {
     companion object {
-        /** Jüngste zuerst; bei gleicher Zeit nach Zimmer, dann ID. */
+        /** Jüngste zuerst; bei gleicher Zeit der neuere Abschluss zuerst, dann nach Zimmer und ID. */
         private val ORDER: Comparator<HistoryEntry> =
             compareByDescending<HistoryEntry> { it.time }
+                .thenByDescending { (it as? HistoryEntry.Resolved)?.entry?.action?.record?.id ?: Long.MIN_VALUE }
                 .thenBy { it.resident.room }
                 .thenBy { it.id }
 
         /**
-         * Reine Funktion: alle Hinweise der [timeline] und die Routinetermine bis einschließlich [now].
-         * Aktivitäten gehören nicht dazu.
+         * Reine Funktion: alle Hinweise der [timeline], die Routinetermine bis einschließlich [now] und die
+         * Abschlüsse aus [resolved] im Fenster der Zeitleiste. Aktivitäten gehören nicht dazu.
          */
-        fun from(timeline: Timeline, now: LocalDateTime): ShiftHistory {
+        fun from(timeline: Timeline, now: LocalDateTime, resolved: List<ResolvedEntry> = emptyList()): ShiftHistory {
             val hints = timeline.events.map { HistoryEntry.Hint(it.event, it.resident) }
             val routines = timeline.routines
                 .filter { !it.time.isAfter(now) }
                 .map { HistoryEntry.PlannedRoutine(it.routine, it.resident, it.time) }
-            val (current, previous) = (hints + routines)
+            val resolutions = resolved
+                .filter { !it.time.isBefore(timeline.start) && it.time.isBefore(timeline.end) }
+                .map { HistoryEntry.Resolved(it) }
+            val (current, previous) = (hints + routines + resolutions)
                 .sortedWith(ORDER)
                 .partition { !it.time.isBefore(timeline.shiftStart) }
             return ShiftHistory(currentShift = current, previousShift = previous)
@@ -53,6 +63,7 @@ data class ShiftHistory(
             get() = when (this) {
                 is HistoryEntry.Hint -> event.id
                 is HistoryEntry.PlannedRoutine -> routine.id
+                is HistoryEntry.Resolved -> entry.event.id
             }
     }
 }

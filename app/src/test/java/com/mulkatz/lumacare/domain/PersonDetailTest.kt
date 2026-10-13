@@ -125,4 +125,24 @@ class PersonDetailTest {
     fun `unbekannte person ergibt kein detail`() {
         assertNull(PersonDetail.build(data, "r99", now, early))
     }
+
+    @Test
+    fun `verlauf mischt hinweise und aktionen der pflege, jüngste oben`() {
+        val taken = EventState(EventStatus.IN_PROGRESS, ShiftType.EARLY, null)
+        val resolved = EventState(EventStatus.DONE, ShiftType.EARLY, Resolution.DONE)
+        val actions = listOf(
+            EventActionRecord(1, "e005", EventActionType.ASSIGN, at("07:15"), null, null, EventState(EventStatus.OPEN, null, null)),
+            EventActionRecord(2, "e018", EventActionType.CONFIRM_HANDOVER, at("07:16"), null, null, EventState(EventStatus.IN_PROGRESS, ShiftType.NIGHT, null)),
+            EventActionRecord(3, "e005", EventActionType.RESOLVE, at("07:15"), "Werte gemessen", null, taken),
+        )
+        val werner = events.map { if (it.id == "e005") it.copy(status = EventStatus.DONE, assignedTo = ShiftType.EARLY, resolution = Resolution.DONE) else it }
+        val detail = requireNotNull(PersonDetail.build(data.copy(events = werner, actions = actions), "r04", now, early))
+
+        // Gleiche Uhrzeit: neuere Aktion zuerst; Aktionen anderer Personen fehlen.
+        assertEquals(listOf(3L, 1L, null), detail.history.map { it.action?.record?.id })
+        assertEquals(listOf(resolved, taken), detail.history.mapNotNull { it.action?.after })
+        assertEquals("Werte gemessen", detail.history.first().action?.record?.note)
+        assertEquals(listOf("e005", "e005", "e005"), detail.history.map { it.event.id })
+        assertTrue(detail.hints.isEmpty())
+    }
 }
