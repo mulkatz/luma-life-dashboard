@@ -19,7 +19,7 @@
 | Präsentation | Kein Video, **Vorstellung im Videocall** | Antwort von Marcel & Marvin [R] |
 | Native vs. Web | **Kanalstrategie**, kurz in `01-entscheidungen.md` | Konstruktiv, ohne die Vorgabe zu diskutieren |
 | Commits | **Conventional Commits, nur lowercase, keine Emojis, ohne KI-Co-Author-Trailer** | Lesbare Historie; KI-Einsatz wird in `docs/02-ki-arbeitsweise.md` transparent gemacht |
-| Repository | **`luma-care-dashboard`** (privat), Produktname „Luma Care“ | Eigenes Logo, abgeleitet aus der Luma-Bildmarke (§7) |
+| Repository | **`mulkatz/luma-life-dashboard`** (privat), Produktname „Luma Care“ | Eigenes Logo, abgeleitet aus der Luma-Bildmarke (§7) |
 
 ---
 
