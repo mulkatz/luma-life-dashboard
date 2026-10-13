@@ -50,6 +50,35 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// Einzige Seed-Quelle ist docs/case/luma-seed.json. Sie wird unverändert als generiertes Asset
+// eingebunden, statt eine Kopie ins Repo zu legen.
+abstract class CopySeedAssetTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val seedFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val target = outputDir.get().asFile
+        target.deleteRecursively()
+        target.mkdirs()
+        seedFile.get().asFile.copyTo(target.resolve("luma-seed.json"))
+    }
+}
+
+val copySeedAsset = tasks.register<CopySeedAssetTask>("copySeedAsset") {
+    seedFile.set(rootProject.layout.projectDirectory.file("docs/case/luma-seed.json"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copySeedAsset, CopySeedAssetTask::outputDir)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
