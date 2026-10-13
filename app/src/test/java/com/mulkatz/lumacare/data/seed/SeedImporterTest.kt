@@ -122,6 +122,7 @@ class SeedImporterTest {
         val changed = db.eventDao().updateStatus(
             id = "e005",
             expected = EventStatus.OPEN,
+            expectedAssignedTo = null,
             new = EventStatus.IN_PROGRESS,
             assignedTo = ShiftType.EARLY,
             resolution = null,
@@ -189,6 +190,7 @@ class SeedImporterTest {
         db.eventDao().updateStatus(
             id = "e005",
             expected = EventStatus.OPEN,
+            expectedAssignedTo = null,
             new = EventStatus.IN_PROGRESS,
             assignedTo = ShiftType.EARLY,
             resolution = null,

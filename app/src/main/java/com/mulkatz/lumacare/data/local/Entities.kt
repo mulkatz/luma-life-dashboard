@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 import com.mulkatz.lumacare.domain.EventActionType
 import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.EventType
+import com.mulkatz.lumacare.domain.ForwardTarget
 import com.mulkatz.lumacare.domain.Resolution
 import com.mulkatz.lumacare.domain.Severity
 import com.mulkatz.lumacare.domain.ShiftType
@@ -84,6 +85,8 @@ data class EventActionEntity(
     val action: EventActionType,
     @ColumnInfo(name = "created_at") val createdAt: LocalDateTime,
     val note: String?,
+    /** Ziel der Weiterleitung, nur bei Abschluss mit `FORWARDED` (seit DB-Version 2). */
+    @ColumnInfo(name = "forwarded_to") val forwardedTo: ForwardTarget?,
     @ColumnInfo(name = "prev_status") val prevStatus: EventStatus,
     @ColumnInfo(name = "prev_assigned_to") val prevAssignedTo: ShiftType?,
     @ColumnInfo(name = "prev_resolution") val prevResolution: Resolution?,

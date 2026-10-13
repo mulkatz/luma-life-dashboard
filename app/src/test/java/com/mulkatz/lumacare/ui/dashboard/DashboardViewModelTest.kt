@@ -5,13 +5,18 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mulkatz.lumacare.data.local.LumaDatabase
+import com.mulkatz.lumacare.data.repository.ActionResult
 import com.mulkatz.lumacare.data.repository.CareRepository
 import com.mulkatz.lumacare.data.repository.RoomCareRepository
+import com.mulkatz.lumacare.data.repository.UndoResult
 import com.mulkatz.lumacare.data.seed.SeedImporter
 import com.mulkatz.lumacare.data.seed.SeedParser
 import com.mulkatz.lumacare.domain.CareData
+import com.mulkatz.lumacare.domain.EventCommand
+import com.mulkatz.lumacare.domain.EventState
 import com.mulkatz.lumacare.domain.EventStatus
 import com.mulkatz.lumacare.domain.ShiftClock
+import com.mulkatz.lumacare.domain.ShiftType
 import com.mulkatz.lumacare.domain.UpcomingItem
 import com.mulkatz.lumacare.testing.InMemoryAppStateStore
 import com.mulkatz.lumacare.testing.inMemoryDatabase
@@ -110,6 +115,7 @@ class DashboardViewModelTest {
         val changed = db.eventDao().updateStatus(
             id = "e005",
             expected = EventStatus.OPEN,
+            expectedAssignedTo = null,
             new = EventStatus.DONE,
             assignedTo = null,
             resolution = null,
@@ -184,6 +190,16 @@ class DashboardViewModelTest {
         }
 
         override fun observeCareData(): Flow<CareData> = data
+
+        override suspend fun apply(
+            eventId: String,
+            expected: EventState,
+            command: EventCommand,
+            shift: ShiftType,
+            now: LocalDateTime,
+        ): ActionResult = error("nicht benutzt")
+
+        override suspend fun undo(actionId: Long, now: LocalDateTime): UndoResult = error("nicht benutzt")
     }
 
     /** Wirft beim ersten Import, danach liefert es einen leeren Datenstand. */
@@ -197,5 +213,15 @@ class DashboardViewModelTest {
         }
 
         override fun observeCareData(): Flow<CareData> = flowOf(CareData(emptyList(), emptyList(), emptyList(), emptyList()))
+
+        override suspend fun apply(
+            eventId: String,
+            expected: EventState,
+            command: EventCommand,
+            shift: ShiftType,
+            now: LocalDateTime,
+        ): ActionResult = error("nicht benutzt")
+
+        override suspend fun undo(actionId: Long, now: LocalDateTime): UndoResult = error("nicht benutzt")
     }
 }

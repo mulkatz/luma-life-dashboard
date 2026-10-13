@@ -75,10 +75,26 @@ data class Shift(
     val unit: String,
 )
 
+/**
+ * Verlaufseintrag zu einem Hinweis: was getan wurde und der Zustand davor (Grundlage für Rückgängig).
+ * Heißt nicht `EventAction`, weil das die Schnellaktion im Dashboard ist.
+ */
+data class EventActionRecord(
+    val id: Long,
+    val eventId: String,
+    val type: EventActionType,
+    val createdAt: LocalDateTime,
+    val note: String?,
+    val forwardedTo: ForwardTarget?,
+    val previous: EventState,
+)
+
 /** Alle Daten, die das Dashboard braucht, als ein Stand. */
 data class CareData(
     val residents: List<Resident>,
     val events: List<LumaEvent>,
     val routines: List<Routine>,
     val activities: List<Activity>,
+    /** Verlauf aller Hinweise in Reihenfolge des Entstehens (ID). */
+    val actions: List<EventActionRecord> = emptyList(),
 )

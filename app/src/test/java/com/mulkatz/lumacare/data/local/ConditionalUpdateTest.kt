@@ -34,6 +34,7 @@ class ConditionalUpdateTest {
     private suspend fun takeOver() = db.eventDao().updateStatus(
         id = "e005",
         expected = EventStatus.OPEN,
+        expectedAssignedTo = null,
         new = EventStatus.IN_PROGRESS,
         assignedTo = ShiftType.EARLY,
         resolution = null,

@@ -18,12 +18,17 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mulkatz.lumacare.data.local.LumaDatabase
+import com.mulkatz.lumacare.data.repository.ActionResult
 import com.mulkatz.lumacare.data.repository.CareRepository
 import com.mulkatz.lumacare.data.repository.RoomCareRepository
+import com.mulkatz.lumacare.data.repository.UndoResult
 import com.mulkatz.lumacare.data.seed.SeedImporter
 import com.mulkatz.lumacare.data.seed.SeedParser
 import com.mulkatz.lumacare.domain.CareData
+import com.mulkatz.lumacare.domain.EventCommand
+import com.mulkatz.lumacare.domain.EventState
 import com.mulkatz.lumacare.domain.ShiftClock
+import com.mulkatz.lumacare.domain.ShiftType
 import com.mulkatz.lumacare.testing.InMemoryAppStateStore
 import com.mulkatz.lumacare.testing.inMemoryDatabase
 import com.mulkatz.lumacare.testing.realSeedJson
@@ -208,7 +213,7 @@ class DashboardScreenTest {
     private class GatedRepository(
         private val delegate: CareRepository,
         private val gate: CompletableDeferred<Unit>,
-    ) : CareRepository {
+    ) : CareRepository by delegate {
         override suspend fun ensureSeeded() {
             gate.await()
             delegate.ensureSeeded()
@@ -218,7 +223,7 @@ class DashboardScreenTest {
     }
 
     /** Erster Import wirft, danach arbeitet es wie [delegate]. */
-    private class FlakyRepository(private val delegate: CareRepository) : CareRepository {
+    private class FlakyRepository(private val delegate: CareRepository) : CareRepository by delegate {
         private var attempts = 0
 
         override suspend fun ensureSeeded() {
@@ -234,5 +239,15 @@ class DashboardScreenTest {
         override suspend fun ensureSeeded() = Unit
 
         override fun observeCareData(): Flow<CareData> = flowOf(CareData(emptyList(), emptyList(), emptyList(), emptyList()))
+
+        override suspend fun apply(
+            eventId: String,
+            expected: EventState,
+            command: EventCommand,
+            shift: ShiftType,
+            now: LocalDateTime,
+        ): ActionResult = error("nicht benutzt")
+
+        override suspend fun undo(actionId: Long, now: LocalDateTime): UndoResult = error("nicht benutzt")
     }
 }

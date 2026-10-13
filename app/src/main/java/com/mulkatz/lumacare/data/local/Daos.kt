@@ -32,20 +32,25 @@ interface LumaEventDao {
     @Query("DELETE FROM luma_event")
     suspend fun deleteAll()
 
+    @Query("SELECT * FROM luma_event WHERE id = :id")
+    suspend fun getById(id: String): LumaEventEntity?
+
     /**
-     * Bedingtes Update: greift nur, wenn der Status noch [expected] ist.
+     * Bedingtes Update: greift nur, wenn Status und Zuordnung noch [expected] und [expectedAssignedTo] sind.
+     * Die Zuordnung zählt mit, weil „Übernahme bestätigen“ den Status nicht ändert.
      * Rückgabe: Anzahl geänderter Zeilen (0 = veralteter Zustand).
      */
     @Query(
         """
         UPDATE luma_event
         SET status = :new, assigned_to = :assignedTo, resolution = :resolution, updated_at = :updatedAt
-        WHERE id = :id AND status = :expected
+        WHERE id = :id AND status = :expected AND assigned_to IS :expectedAssignedTo
         """,
     )
     suspend fun updateStatus(
         id: String,
         expected: EventStatus,
+        expectedAssignedTo: ShiftType?,
         new: EventStatus,
         assignedTo: ShiftType?,
         resolution: Resolution?,
@@ -79,8 +84,27 @@ interface ActivityDao {
 
 @Dao
 interface EventActionDao {
-    @Query("SELECT * FROM event_action ORDER BY created_at, id")
+    /** In Reihenfolge des Entstehens (ID), unabhängig von `created_at`. */
+    @Query("SELECT * FROM event_action ORDER BY id")
     fun observeAll(): Flow<List<EventActionEntity>>
+
+    /** Rückgabe: die vergebene ID. */
+    @Insert
+    suspend fun insert(action: EventActionEntity): Long
+
+    @Query("SELECT * FROM event_action WHERE id = :id")
+    suspend fun getById(id: Long): EventActionEntity?
+
+    /**
+     * Zuletzt entstandene Aktion eines Hinweises: höchste ID. Nicht nach `created_at`, weil die Uhr
+     * rückwärts laufen kann (Systemzeit zurückgestellt); die ID wächst streng (AUTOINCREMENT).
+     */
+    @Query("SELECT * FROM event_action WHERE event_id = :eventId ORDER BY id DESC LIMIT 1")
+    suspend fun latestForEvent(eventId: String): EventActionEntity?
+
+    /** Rückgabe: Anzahl gelöschter Zeilen. */
+    @Query("DELETE FROM event_action WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
 
     @Query("DELETE FROM event_action")
     suspend fun deleteAll()
