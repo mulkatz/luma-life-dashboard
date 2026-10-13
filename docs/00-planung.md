@@ -12,6 +12,7 @@
 | Thema | Entscheidung | Begründung |
 |---|---|---|
 | Plattform | **Android: Kotlin, Jetpack Compose, Room** | Vorgabe „nativ“ [R] |
+| Formfaktoren | **Phone und Tablet**, adaptiv über `WindowSizeClass` (Compact/Medium eine Spalte, Expanded List-Detail) | Ab Android 16 ignoriert das System auf großen Bildschirmen feste Ausrichtung und Größensperren [R]; Tablet im Stationszimmer für Übergabe [A] |
 | Kern-Flow | **Von Luma gemeldetes Anliegen übernehmen → bearbeiten → abschließen** | Der tägliche Kernvorgang, den die Seed-Daten vollständig tragen |
 | Zweiter Flow | **Routine anlegen mit Prüfung auf Überschneidungen**, nur skizziert | Optionaler Pluspunkt [R] |
 | LLM-Call | **Nur konzeptionell** (Roadmap) | Das Budget von 4 h insgesamt [R] lässt keinen Raum dafür |
@@ -40,6 +41,7 @@
 | Viele fachfremde Aufgaben (Zeitung, Küche, Organisatorisches) landen bei der Pflege | [A] |
 | Notizen in der App sind **Übergabe-Notizen, keine Pflegedokumentation** (keine Doppeldokumentation) | [A] |
 | Tippen im Gehen ist unrealistisch → Textbausteine statt Freitext-Pflicht | [A] |
+| Smartphone im Gehen, **Tablet im Stationszimmer** (Schichtbeginn, Übergabe) | [A] |
 | „Ich“ = feste, fiktive Nutzerin („Anna K., Pflegefachkraft“), kein Login | [A] |
 
 ### Nutzungsszenarien
@@ -95,6 +97,9 @@ Er beantwortet: *Wer braucht jetzt meine Aufmerksamkeit, und warum?*
 5. **Zeitnah prüfen:** Personen mit `attention` als höchster offener Dringlichkeit.
 6. **Organisatorisches:** Personen nur mit offenen `info`-Events, kompakt.
 7. **Leerer Zustand** „Alles erledigt“ erscheint **nur nach** dem Laden, nie während des Imports.
+
+**Tablet (Expanded, ≥ 840 dp):** Dashboard links, Detail der gewählten Person rechts (List-Detail).
+Phone und kleine Fenster: eine Spalte, Detail als eigener Screen.
 
 ### Priorisierungsregeln (Domain, getestet)
 - Abschnitt einer Person = höchste Dringlichkeit ihrer **offenen** Events (`status != done`).
@@ -174,13 +179,13 @@ Die vollständige Spezifikation liegt im Skill `luma-design-system` (`references
 ### Farben – Marke [R, lumalife.de]
 | Token | Light | Dark | Hinweis |
 |---|---|---|---|
-| `primary` | `#2E7F85` (4,68 : 1 auf Weiß) | `#4AAFB6` | Markenfarbe `#4AAFB6` hat auf Weiß nur 2,59 : 1 → im Light Mode dunklere Stufe |
+| `primary` | `#2E7F85` (4,68 : 1 auf Weiß) | `#4AAFB6` | Markenfarbe `#4AAFB6` hat auf Weiß nur 2,59 : 1 → im Light Mode dunklere Stufe. Als Textfarbe nur auf `surface` (auf `background` nur 4,37 : 1) |
 | `onPrimary` | `#FFFFFF` | `#211E32` | `#4AAFB6` auf Aubergine: 6,25 : 1 |
 | `secondary` / Kopfbereich | `#211E32` | `#211E32` | Aubergine |
 | `accent` | `#FACF39` | `#FACF39` | sparsam, **nie** als Statusfarbe |
 | `background` / `surface` | `#F7F7F9` / `#FFFFFF` | `#17151F` / `#211E32` | |
 | `onSurface` / `muted` | `#211E32` / `#5C5A66` (6,75) | `#ECEAF4` (15,2) / `#A9A6B6` (7,58) | |
-| `outline` | `#8E8B99` (3,33, UI ≥ 3 : 1) | – | |
+| `outline` | `#8E8B99` (3,33, UI ≥ 3 : 1) | `#807C92` (4,02) | |
 
 ### Farben – Status (Text/Icon auf Container, geprüft)
 | Status | Light | Kontrast | Dark | Kontrast |
@@ -210,6 +215,7 @@ Mindestgröße 12 sp; getestet bei Schriftgröße 130 % und 200 %.
 - **Radien:** Chips/Badges 8 · Karten 16 · Bottom Sheets 28 · Buttons voll gerundet.
 - **Höhe:** flach, tonale Flächen statt Schatten; Hervorhebung über Farbe und Rand.
 - **Icons:** Material Symbols *Rounded* (passt zur Rundung von Manrope).
+- **Adaptives Layout:** Breakpoints über `WindowSizeClass`: < 600 dp eine Spalte · 600–840 dp eine Spalte, max. 640 dp breit · ≥ 840 dp List-Detail (`NavigableListDetailPaneScaffold`). Nie nach Gerätetyp oder Ausrichtung verzweigen; Auswahl und Entwurf überleben den Wechsel.
 - **Bewegung:** 150–250 ms, nur für Statuswechsel und Listen-Umsortierung; respektiert „Animationen entfernen“.
 
 ### Komponenten (Anatomie im Skill)
@@ -236,7 +242,7 @@ Eigene Bildmarke „Luma Care“, abgeleitet aus der Luma-Bildmarke: abgerundete
 |---|---|---|---|
 | **Unit** | Prioritizer (Abschnitte, Sortierung, Zweitschlüssel), EventTransitions (erlaubt/verboten, Pflichtnotiz, Undo), ShiftClock (Anker, Neustart, Schichtende), Wochentagsfilter | JUnit + kotlin.test | JVM, Sekunden |
 | **Integration** | SeedImporter (vollständig, idempotent, transaktional), bedingtes Update im DAO (betroffene Zeilen) | Room in-memory | JVM |
-| **E2E (App-Ebene)** | Kern-Flow durch die echte UI: Start → Import → Werner unter „Jetzt handeln“ → Detail → Übernehmen → Notiz → Abschließen → Werner nicht mehr unter „Jetzt handeln“ → Activity neu erzeugen → Zustand bleibt | Compose UI Test + **Robolectric**, In-Memory-DB, feste Uhr | JVM, ohne Emulator |
+| **E2E (App-Ebene)** | Kern-Flow durch die echte UI: Start → Import → Werner unter „Jetzt handeln“ → Detail → Übernehmen → Notiz → Abschließen → Werner nicht mehr unter „Jetzt handeln“ → Activity neu erzeugen → Zustand bleibt | Compose UI Test + **Robolectric**, In-Memory-DB, feste Uhr; als Phone und Tablet (`@Config(qualifiers)`) | JVM, ohne Emulator |
 | **CI** | `lint`, `testDebugUnitTest`, `assembleDebug` bei jedem Push | GitHub Actions | automatisch |
 | *Optional* | Black-Box-Smoke-Test auf dem Emulator | Maestro (YAML) | Roadmap |
 
@@ -296,6 +302,7 @@ Gesamtbudget **4 h**. Die Planung ist bereits erfolgt (Ist-Zeit: unter 45 min).
 1. Verlauf nur als Liste ohne Gestaltung.
 2. Kennzahlen-Zeile ohne Filterfunktion.
 3. Dark Mode nur über Tokens vorbereitet, nicht feinjustiert.
+4. Tablet ohne List-Detail: auf allen Breiten eine Spalte, max. 640 dp breit und zentriert.
 
 ### Bewusst nicht im Umfang (Roadmap)
 - Schichtübergabe per LLM (mit Datenschutzkonzept; Pseudonymisierung ist keine Anonymisierung)
