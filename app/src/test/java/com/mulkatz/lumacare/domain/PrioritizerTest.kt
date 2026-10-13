@@ -155,7 +155,10 @@ class PrioritizerTest {
             events = listOf(
                 event("e1", "a", Severity.URGENT, type = EventType.REQUEST),
                 event("e2", "a", Severity.INFO, type = EventType.MEAL_WISH),
-                event("e3", "a", Severity.INFO, type = EventType.FAMILY_MESSAGE, status = EventStatus.IN_PROGRESS),
+                event(
+                    "e3", "a", Severity.INFO, type = EventType.FAMILY_MESSAGE,
+                    status = EventStatus.IN_PROGRESS, assignedTo = ShiftType.EARLY,
+                ),
                 event("e4", "a", Severity.INFO, type = EventType.MOOD),
                 event("e5", "a", Severity.INFO, type = EventType.MISSED_CALL),
             ),
@@ -167,6 +170,18 @@ class PrioritizerTest {
         assertEquals(EventAction.FORWARD, actions["e3"])
         assertEquals(EventAction.TAKE_OVER, actions["e4"])
         assertEquals(EventAction.TAKE_OVER, actions["e5"])
+    }
+
+    @Test
+    fun `vorschicht-request zuerst übernahme bestätigen, nicht weiterleiten`() {
+        val model = build(
+            residents = listOf(resident("a")),
+            events = listOf(event("e1", "a", type = EventType.REQUEST, status = EventStatus.IN_PROGRESS)),
+        )
+
+        val entry = model.checkSoon.single().leadEvent
+        assertEquals(Handling.PREVIOUS_SHIFT, entry.handling)
+        assertEquals(EventAction.CONFIRM_HANDOVER, entry.action)
     }
 
     @Test

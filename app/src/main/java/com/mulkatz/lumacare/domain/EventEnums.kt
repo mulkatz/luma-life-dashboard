@@ -25,3 +25,6 @@ enum class ShiftType { EARLY, NIGHT }
 
 /** Art eines Verlaufseintrags (`event_action`). */
 enum class EventActionType { ASSIGN, CONFIRM_HANDOVER, RELEASE, RESOLVE, NOTE }
+
+/** Ziel einer Weiterleitung (Abschlussart [Resolution.FORWARDED]). */
+enum class ForwardTarget { KITCHEN, MAINTENANCE, SOCIAL_SERVICE, ADMINISTRATION }

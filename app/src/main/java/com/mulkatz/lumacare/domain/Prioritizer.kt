@@ -16,8 +16,9 @@ import java.time.LocalTime
  * - **Maßgeblich** ist unter den Hinweisen der höchsten Dringlichkeit der mit dem kleinsten Schlüssel;
  *   nach ihm werden die Personen im Abschnitt sortiert. Die Hinweise einer Person stehen nach
  *   Dringlichkeit, dann Schlüssel; der maßgebliche ist damit der erste.
- * - **Aktion:** `request`, `meal_wish`, `family_message` → Weiterleiten, unabhängig von Dringlichkeit und
- *   Status. Sonst `open` → Übernehmen, Vorschicht → Übernahme bestätigen, eigene → Abschließen.
+ * - **Aktion:** Vorschicht → Übernahme bestätigen, immer zuerst (auch Weiterleiten erst danach).
+ *   Sonst `request`, `meal_wish`, `family_message` → Weiterleiten, unabhängig von der Dringlichkeit;
+ *   übrige `open` → Übernehmen, eigene → Abschließen.
  * - **Demnächst:** Routinetermine (Wochentag passend) und Aktivitäten im Fenster [now, now+60 min].
  *   Hat die Person der Routine bzw. eine angemeldete Person offene Hinweise, wird je Person deren
  *   maßgeblicher Hinweis verknüpft ([UpcomingItem.openHints]). Keine Bewertung als Konflikt.
@@ -32,7 +33,8 @@ object Prioritizer {
     val NEARBY_WINDOW: Duration = Duration.ofMinutes(60)
     private val TIMELINE_START_TIME: LocalTime = LocalTime.of(20, 0)
 
-    private val FORWARD_TYPES = setOf(EventType.REQUEST, EventType.MEAL_WISH, EventType.FAMILY_MESSAGE)
+    /** Typen, die weitergeleitet werden können; gilt auch für [EventTransitions]. */
+    val FORWARD_TYPES = setOf(EventType.REQUEST, EventType.MEAL_WISH, EventType.FAMILY_MESSAGE)
 
     fun build(data: CareData, now: LocalDateTime, shift: Shift): DashboardModel {
         val residents = data.residents.associateBy { it.id }
@@ -76,9 +78,9 @@ object Prioritizer {
     }
 
     fun action(event: LumaEvent, handling: Handling): EventAction = when {
+        handling == Handling.PREVIOUS_SHIFT -> EventAction.CONFIRM_HANDOVER
         event.type in FORWARD_TYPES -> EventAction.FORWARD
         handling == Handling.UNATTENDED -> EventAction.TAKE_OVER
-        handling == Handling.PREVIOUS_SHIFT -> EventAction.CONFIRM_HANDOVER
         else -> EventAction.RESOLVE
     }
 
