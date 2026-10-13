@@ -90,15 +90,21 @@ Er beantwortet: *Wer braucht jetzt meine Aufmerksamkeit, und warum?*
 5. **Unterbrechungen tolerieren.** Status liegt sofort in der DB, Entwürfe überleben Rotation und Prozess-Tod, Rückgängig statt Bestätigungsdialog.
 
 ### Dashboard (von oben nach unten)
+Nach der UX-Analyse des Zielbilds entschlackt: Das Zielbild (`docs/zielbild/zielbild.html`) gibt Inhalte vor, nicht die Dichte.
+Abnahmekriterium: Auf dem Phone (411 × 891 dp, Schrift 100 %) sind beide Karten unter „Jetzt handeln“ ohne Scrollen sichtbar.
+
 1. **Kopfbereich:** Ahorn · Frühdienst · 07:15 · noch 6:45 h.
-2. **Kennzahlen-Zeile** (antippbar als Filter): `2 dringend · 7 zeitnah · 2 aus Nachtdienst · 2 nicht erreicht` (alle Werte zählen Personen; Anrufversuche stehen nur im Freitext).
-   **Schicht-Zeitleiste** (ergänzt nach dem Zielbild, `docs/zielbild/zielbild.html`): zwei Spuren (Luma-Hinweise, heute gültige Routinen), 20:00 des Vortags bis Schichtende, Nacht gestaucht, Jetzt-Marker. Einzelne Marker sind nicht antippbar (zu dicht für 48 dp); die ganze Leiste ist ein Tap-Ziel und öffnet den **Schichtverlauf** (chronologische Liste, gruppiert nach Frühdienst und Vorschicht). Vergangene Routinen sind neutral „geplant“.
-3. **Jetzt handeln:** Personen mit offenem `urgent`.
-4. **Demnächst** (nächste 60 min): Routinen und Aktivitäten, verknüpft mit dem offenen Hinweis der Person (z. B. Hörgeräte 07:30 ↔ e014), ohne Bewertung als „Konflikt“.
+2. **Jetzt handeln:** Personen mit offenem `urgent`.
+3. **Demnächst** (nächste 60 min): Routinen und Aktivitäten. Hat die Person einen offenen Hinweis, steht eine Zeile „Offener Hinweis bei …“ (Tap → Person), ohne den Text zu wiederholen und ohne Bewertung als „Konflikt“.
+4. **Schichtverlauf** als Stundenblöcke: Nacht (20:00–06:00) als ein Block, danach ein Block pro Stunde bis Schichtende, jeweils mit Anzahl der Hinweise, Icon und Tönung nach höchster offener Dringlichkeit; darunter Routinen als Ticks und der Jetzt-Marker. Die ganze Karte ist ein Tap-Ziel und öffnet den **Schichtverlauf** (chronologische Liste, gruppiert nach Frühdienst und Vorschicht). Vergangene Routinen sind neutral „geplant“.
 5. **Zeitnah prüfen:** Personen mit `attention` als höchster offener Dringlichkeit.
 6. **Organisatorisches:** Personen nur mit offenen `info`-Events, kompakt.
-7. **Leerer Zustand** „Alles erledigt“ erscheint **nur nach** dem Laden, nie während des Imports. Zeitleiste und „In dieser Schicht erledigt“ bleiben darunter sichtbar.
+7. **Leerer Zustand** „Alles erledigt“ erscheint **nur nach** dem Laden, nie während des Imports. Schichtverlauf und „In dieser Schicht erledigt“ bleiben darunter sichtbar.
 8. **Fehlerzustand,** falls der Import scheitert: „Daten konnten nicht geladen werden“ mit „Erneut versuchen“.
+
+**Dichte der Personenkarte:** nur der maßgebliche Hinweis (Originalaussage 16 sp, max. 3 Zeilen), weitere als „+ n weitere Hinweise“; höchstens 2 Kontext-Chips plus „+n“; Badge nur in „Jetzt handeln“; kein „Neu“-Marker, nur Abweichungen („Aus Nachtdienst“); auf dem Dashboard nichts unter 14 sp.
+
+**Kennzahlen-Zeile** (`2 dringend · 7 zeitnah · 2 aus Nachtdienst · 2 nicht erreicht`, zählt Personen): entfällt, bis es Filter gibt (Roadmap). Ohne Filter doppelt sie nur die Zählung der Abschnitte.
 
 **Tablet (Expanded, ≥ 840 dp):** Dashboard links, Detail der gewählten Person rechts (List-Detail).
 Phone und kleine Fenster: eine Spalte, Detail als eigener Screen.
@@ -314,7 +320,7 @@ Gesamtbudget **4 h**. Die Planung ist bereits erfolgt (Ist-Zeit: unter 45 min).
 
 **Kürzungen, falls die Planung länger als 60 min gedauert hat:**
 1. Verlauf nur als Liste ohne Gestaltung.
-2. Kennzahlen-Zeile ohne Filterfunktion.
+2. Kennzahlen-Zeile: entfällt ohnehin bis zu den Filtern (§4).
 3. Dark Mode nur über Tokens vorbereitet, nicht feinjustiert.
 4. Tablet ohne List-Detail: auf allen Breiten eine Spalte, max. 640 dp breit und zentriert.
 
@@ -322,6 +328,7 @@ Gesamtbudget **4 h**. Die Planung ist bereits erfolgt (Ist-Zeit: unter 45 min).
 - Schichtübergabe per LLM (mit Datenschutzkonzept; Pseudonymisierung ist keine Anonymisierung)
 - Push-Benachrichtigungen, Login/Rollen, Team-Synchronisation
 - echte Weiterleitung, Angehörigen-Kanal, Gesprächsimpulse
+- Kennzahlen-Zeile mit Filtern, „Alle Bewohnenden“ als eigene Liste
 - zweiter Flow (Routine anlegen)
 - Maestro, Screenshot-Tests
 - Prüfung der regulatorischen Einordnung (Medizinprodukte-Software bei Priorisierung von Gesundheitshinweisen)
