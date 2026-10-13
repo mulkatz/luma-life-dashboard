@@ -165,7 +165,7 @@ AppContainer
 
 ### Wichtige Entscheidungen
 - **Zeitmodell:** durchgängig `LocalDateTime` ohne Zone, gespeichert als ISO-String (sortierbar). `days` wird auf `DayOfWeek` abgebildet.
-- **ShiftClock:** `now = meta.now + (Systemzeit − Anker)`. Der Anker wird beim ersten Start **persistiert**, damit die Uhr Neustarts übersteht und nie rückwärts läuft. Zustand „Schicht beendet“ nach 14:00. Zurücksetzen: App-Daten löschen (README).
+- **ShiftClock:** `now = meta.now + (Systemzeit − Anker)`. Der Anker wird beim ersten Start **persistiert**, damit die Uhr Neustarts übersteht und nicht auf 07:15 zurückspringt; wird die Systemzeit vor den Anker gestellt, bleibt sie bei `meta.now` stehen. Zustand „Schicht beendet“ nach 14:00. Zurücksetzen: App-Daten löschen (README).
 - **Zeit-Reaktivität:** Room-Flow `combine` Minuten-Ticker, damit „07:30 fällig“ live umspringt.
 - **Seed-Import:** in **einer Transaktion**; `seed_version` erst nach dem Commit; Ladezustand bis dahin. Mapping-Regel im Importer: Gesundheitsangaben aus `preferences` → `health_notes`. Die Seed-Datei bleibt unverändert.
 - **Datenmodell-Erweiterungen:** `resident.health_notes`, `luma_event.assigned_to / resolution / updated_at`, Tabelle `event_action` (Verlauf + Undo-Snapshot). Anmeldungen als Liste per Converter.

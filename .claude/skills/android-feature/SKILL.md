@@ -24,7 +24,7 @@ Von innen nach außen, jede Schicht mit Test:
   0 Zeilen = veralteter Zustand → kein Verlaufseintrag, UI zeigt den aktuellen Stand.
 - **Verlauf und Undo:** jede Statusänderung schreibt in derselben Transaktion (`withTransaction`) eine
   `event_action` mit dem vorherigen Snapshot (`status`, `assigned_to`, `resolution`). Undo stellt den Snapshot her und löscht die Aktion.
-- **Room:** Zeiten als ISO-String (`LocalDateTime.toString()`, sortierbar) über `TypeConverter`;
+- **Room:** Zeiten als ISO-String (`DateTimeFormatter.ISO_LOCAL_DATE_TIME` bzw. `ISO_LOCAL_TIME`, Sekunden immer enthalten, sortierbar) über `TypeConverter`;
   Listen (Anmeldungen) per Converter, keine Join-Tabelle. Schema-Export an (`room.schemaLocation`).
 - **ViewModel:** `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)`; der Initialzustand
   ist `Loading`, nie eine leere Liste (sonst blitzt „Alles erledigt“ auf).

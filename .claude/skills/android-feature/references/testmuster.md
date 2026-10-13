@@ -6,11 +6,18 @@ Benennung: `` `abschnitt ist höchste offene dringlichkeit`() `` – Backtick-Na
 ## Feste Uhr
 
 ```kotlin
-class FixedShiftClock(var current: LocalDateTime = LocalDateTime.parse("2026-10-12T07:15:00")) : ShiftClock {
-    override fun now(): LocalDateTime = current
-    override val ticks: Flow<LocalDateTime> = flowOf(current)
-}
+// Systemzeit konstant → now() bleibt auf seedNow; ein Vorrücken ist über eine var-Systemzeit möglich.
+val fixedClock = ShiftClock(
+    seedNow = LocalDateTime.parse("2026-10-12T07:15:00"),
+    shiftStart = LocalDateTime.parse("2026-10-12T06:00:00"),
+    shiftEnd = LocalDateTime.parse("2026-10-12T14:00:00"),
+    anchorStore = InMemoryAppStateStore(),
+    currentTimeMillis = { 0L },
+)
 ```
+
+`InMemoryAppStateStore` liegt in `app/src/test/.../testing/`. In `runTest` die Zeitquelle an die virtuelle Zeit
+koppeln (`currentTimeMillis = { base + testScheduler.currentTime }`), dann sind auch `ticks` deterministisch.
 
 ## Unit (Domain)
 
