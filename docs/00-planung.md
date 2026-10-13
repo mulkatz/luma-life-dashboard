@@ -131,20 +131,22 @@ Dashboard ─tap Person─▶ Detail (Person, Hinweise, Kontext, Personenverlauf
 ◀── reaktiv aktualisiert ── Snackbar „Rückgängig“
 ```
 
-Übernahme gilt **pro Hinweis** (Status und Verlauf liegen pro Event). „Abschließen“ erscheint erst nach der Übernahme.
+Übernahme gilt **pro Hinweis** (Status und Verlauf liegen pro Event). Für `urgent` erscheint „Abschließen“ erst nach der Übernahme; `info` und `attention` lassen sich auch direkt abschließen (siehe Tabelle).
 
 **Übergänge**
 | Von → Nach | Regel |
 |---|---|
 | `open → in_progress` | Übernehmen (`assigned_to = ich`) |
 | `in_progress (Vorschicht) → in_progress (ich)` | Übernahme bestätigen |
-| `in_progress → open` | Zurückgeben |
-| `open → done` | `info`: direkt („Zur Kenntnis“); `attention`: mit Notiz |
-| `in_progress → done` | Abschlussart wählen; **Notiz Pflicht** bei `health_hint` und `urgent`; „Kein Handlungsbedarf“ bei `urgent` nur mit Notiz |
-| **Rückgängig** | Stellt den **vorherigen Snapshot** (status, assigned_to, resolution) aus `event_action` wieder her und entfernt die Aktion |
+| `in_progress (ich) → open` | Zurückgeben; ein Vorschicht-Fall muss erst bestätigt werden |
+| `open → done` | `info`: direkt („Zur Kenntnis“); `attention`: mit Notiz; `urgent`: nie (erst übernehmen); `health_hint`: immer mit Notiz. Der Abschluss ordnet der aktuellen Schicht zu |
+| `in_progress (ich) → done` | Abschlussart wählen; **Notiz Pflicht** bei `health_hint` und `urgent`; „Kein Handlungsbedarf“ bei `urgent` nur mit Notiz. Vorschicht-Fälle erst bestätigen |
+| **Weiterleiten** | Für `request`, `meal_wish`, `family_message` aus `open` oder eigenem `in_progress`; Ziel (Küche, Haustechnik, Sozialdienst, Verwaltung) Pflicht; Notiz Pflicht bei `urgent` |
+| **Notiz** | Ohne Statuswechsel, für alles außer `done`; gültig ab 3 Zeichen nach Trim |
+| **Rückgängig** | Nur die jeweils letzte Aktion eines Hinweises (Reihenfolge nach ID, nicht nach Uhrzeit). Stellt den **vorherigen Snapshot** (status, assigned_to, resolution) aus `event_action` wieder her und entfernt die Aktion |
 
 **Robustheit**
-- **Bedingtes Update:** `UPDATE … WHERE id = ? AND status = :expected`; die Anzahl betroffener Zeilen wird ausgewertet. Das deckt doppeltes Tippen und veraltete Zustände ab.
+- **Optimistisches Sperren:** Die UI übergibt den Zustand, den sie gesehen hat; weicht der gespeicherte ab, ist das Ergebnis „veraltet“ ohne Verlaufseintrag. Zweite Sicherung: bedingtes Update `UPDATE … WHERE id = ? AND status = :expected AND assigned_to IS :expectedAssignedTo` mit Auswertung der betroffenen Zeilen. Das deckt doppeltes Tippen und veraltete Zustände ab.
 - Notizentwurf über `SavedStateHandle`.
 - Validierung: Pflichtnotiz leer oder < 3 Zeichen → Inline-Fehler, keine Dialoge.
 
