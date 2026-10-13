@@ -8,8 +8,8 @@ Alle Werte mit `scripts/contrast.py` geprüft. Bei Änderungen Tabelle **und** `
 |---|---|---|---|
 | `primary` | `#2E7F85` | `#4AAFB6` | Markenfarbe `#4AAFB6` hat auf Weiß nur 2,59 : 1, deshalb im Light Mode eine dunklere Stufe |
 | `onPrimary` | `#FFFFFF` (4,68) | `#211E32` (6,25) | |
-| `secondary` | `#211E32` | `#211E32` | Aubergine; Kopfbereich (`ShiftHeader`) |
-| `onSecondary` | `#FFFFFF` (16,2) | `#ECEAF4` | |
+| `secondary` | `#211E32` | `#2F2A4A` | Aubergine; Kopfbereich (`ShiftHeader`, `SubpageAppBar`). Dark heller als die Karten (`surface` `#211E32`, 1,20 : 1), damit sich der Kopf abhebt |
+| `onSecondary` | `#FFFFFF` (16,2) | `#ECEAF4` (11,4) | |
 | `accent` | `#FACF39` | `#FACF39` | Nur „neu“-Punkt und Akzente, **nie Status**. Text darauf: `#211E32` (10,8) |
 | `background` | `#F7F7F9` | `#17151F` | |
 | `surface` | `#FFFFFF` | `#211E32` | Karten, Sheets |
@@ -35,6 +35,7 @@ zurückfällt. Karten setzen ihre Farbe explizit auf `surface` (nicht M3-Default
 | `surfaceContainerHigh` | `#FFFFFF` | `#2A2740` | |
 | `surfaceContainerHighest` | `#F0EFF4` | `#322F48` | `muted` darauf 5,90 / 5,39, `onSurface` 14,2 / 10,8 |
 | `surfaceVariant` | `#F0EFF4` | `#322F48` | |
+| `surfaceDim` | `#F0EFF4` | `#110F18` | Liste im List-Detail (Tablet). `muted` darauf 5,90 / 7,98, `onSurface` 14,2 / 16,0; Karten (`surface`) heben sich ab |
 | `onSurfaceVariant` | = `muted` `#5C5A66` | = `muted` `#A9A6B6` | |
 | `primaryContainer` / `secondaryContainer` | `#D5EEF0` | `#1F4A4E` | |
 | `onPrimaryContainer` / `onSecondaryContainer` | `#17474B` (8,49) | `#CDEEF0` (7,95) | |
@@ -43,7 +44,7 @@ zurückfällt. Karten setzen ihre Farbe explizit auf `surface` (nicht M3-Default
 | `inversePrimary` | `#4AAFB6` (6,25) | `#256A70` (5,23) | Aktion in der Snackbar |
 | `error` / `onError` | `#B42318` / `#FFFFFF` (6,57) | `#FDA29B` / `#3A1210` (8,49) | |
 | `errorContainer` / `onErrorContainer` | `#FEE4E2` / `#B42318` (5,45) | `#3A1210` / `#FDA29B` (8,49) | |
-| `outlineVariant` | `#D9D8DF` | `#3D3A52` | Nur dekorative Trenner, kein Kontrastanspruch |
+| `outlineVariant` | `#D9D8DF` | `#3D3A52` | Nur Trennlinien und Kartenränder, kein Kontrastanspruch. Bedienbare Ränder (Buttons, Chips) immer `outline` (`ui/components/Outlined.kt`) |
 
 ## Farben – Status
 
@@ -66,7 +67,8 @@ Bearbeitungsstand (zweite Achse, unabhängig von der Dringlichkeit) als neutrale
 
 | Rolle | Größe/Zeile (sp) | Gewicht | Einsatz |
 |---|---|---|---|
-| `headlineSmall` | 24/32 | 700 | Begrüßung, Detail-Titel |
+| `headlineSmall` | 24/32 | 700 | Begrüßung, Detail-Titel, Kopf des Detailbereichs (Tablet) |
+| `titleLarge` | 22/28 | 600 | Sheet-Titel |
 | `titleMedium` | 18/24 | 600 | Personenname auf der Karte |
 | `titleSmall` | 15/20 | 600 | Abschnittsüberschriften |
 | `bodyLarge` | 16/24 | 400 | Luma-Aussage |
@@ -76,6 +78,8 @@ Bearbeitungsstand (zweite Achse, unabhängig von der Dringlichkeit) als neutrale
 | `labelSmall` | 12/16 | 600 | Wie `labelMedium`; Material-Default (11 sp) wäre zu klein |
 
 Mindestgröße 12 sp. Ziffern für Uhrzeiten mit `fontFeatureSettings = "tnum"` (gleich breit).
+Zeitspalte in Verlaufslisten: `LumaSizes.timeColumn` 64 dp (mit der Schriftgröße skaliert), „gestern“ als zweite Zeile.
+Stundenbeschriftung der Blockreihe höchstens 130 % groß.
 
 ## Abstände (`LumaSpacing`, 4-dp-Raster)
 
