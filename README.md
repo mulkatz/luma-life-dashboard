@@ -44,9 +44,20 @@ Robolectric · Gradle mit festgelegter Daemon-JVM (JDK 25)
 
 ## Projekt starten
 
-> Die Start-Anleitung mit genauen Versionen und Befehlen wird mit dem ersten lauffähigen Build ergänzt.
+Voraussetzungen: Android Studio Rabbit 1 (2026.2.1) oder neuer. Für `./gradlew` im Terminal genügt
+ein beliebiges lokales JDK ≥ 17 (z. B. die JBR von Android Studio); JDK 25 für den Build lädt Gradle
+bei Bedarf selbst (`gradle/gradle-daemon-jvm.properties`). Die App läuft ab Android 8.0 (minSdk 26),
+targetSdk ist 37; Phone und Tablet.
 
-Voraussetzungen: Android Studio Rabbit 1 (2026.2.1) oder neuer, Android-Emulator ab API 26.
+```sh
+./gradlew assembleDebug        # Debug-APK bauen
+./gradlew testDebugUnitTest    # alle Tests, ohne Emulator (Robolectric)
+./gradlew lint                 # Android Lint
+./gradlew installDebug         # auf Emulator oder Gerät installieren
+```
+
+Beim ersten Start importiert die App die Seed-Daten in die lokale Datenbank (folgt). Zurücksetzen:
+in den Android-Einstellungen bei „Luma Care“ die App-Daten löschen.
 
 ## Dokumentation
 

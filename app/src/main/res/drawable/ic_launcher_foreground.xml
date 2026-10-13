@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Aus docs/assets/logo-mark.svg (512er Raster). Viewport 768 mit Versatz 128: Die 512 Einheiten des
+     Logos füllen genau den sichtbaren 72-dp-Bereich, die Maske ersetzt das abgerundete Rechteck. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="768"
+    android:viewportHeight="768">
+    <group
+        android:translateX="128"
+        android:translateY="128">
+        <path
+            android:pathData="M398.7,209.6A150,150 0 1,1 302.4,113.3"
+            android:strokeWidth="32"
+            android:strokeColor="@color/launcher_ink"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@color/launcher_accent"
+            android:pathData="M332.1,149.9a30,30 0 1,0 60,0a30,30 0 1,0 -60,0z"
+            android:strokeWidth="12"
+            android:strokeColor="@color/launcher_ink" />
+        <path
+            android:fillColor="@color/launcher_ink"
+            android:pathData="M216,198a40,40 0 1,0 80,0a40,40 0 1,0 -80,0z" />
+        <path
+            android:pathData="M180,282H332M180,332H284"
+            android:strokeWidth="30"
+            android:strokeColor="@color/launcher_ink"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

@@ -142,16 +142,17 @@ Dashboard ─tap Person─▶ Detail (Person, Hinweise, Kontext, Verlauf)
 
 ## 6. Technik
 
-### Stack (Stand 13.10.2026, beim Setup gegen maven.google.com verifizieren) [R]
+### Stack (beim Setup am 13.10.2026 gegen Primärquellen geprüft) [R]
 | Komponente | Version |
 |---|---|
-| Android Studio | **Rabbit 1 (2026.2.1)**; installiert ist 2026.1 → Update nötig |
-| JDK | **25 (LTS)**, festgelegt über `gradle/gradle-daemon-jvm.properties` (kein lokaler Pfad) |
-| AGP / Gradle | 9.4 / 9.6 |
-| Kotlin | 2.4.20 (KSP passend dazu) |
-| Compose | BOM 2026.09.00 (Material 3) |
-| Room | **2.8.4** (KSP). Bewusst nicht Room 3.0: weniger Setup-Risiko im knappen Budget; Repository-Schicht macht einen späteren Wechsel lokal |
-| Serialisierung | kotlinx.serialization |
+| Android Studio | **Rabbit 1 (2026.2.1)** |
+| JDK | **25 (LTS)**, festgelegt über `gradle/gradle-daemon-jvm.properties` mit Auto-Download (Foojay), kein lokaler Pfad |
+| AGP / Gradle | 9.4.1 / 9.7.1 (AGP verlangt ≥ 9.6; Kotlin 2.4 ist bis Gradle 9.7 getestet) |
+| Kotlin | 2.4.21, über das in AGP 9 eingebaute Kotlin; KSP 2.3.12. Kotlin 2.4 ist offiziell nur bis AGP 9.3 getestet → Fallback: mitgeliefertes Kotlin |
+| Compose | BOM 2026.09.00 (Material 3), material3-adaptive 1.3.0 (`NavigableListDetailPaneScaffold`, keine Navigationsbibliothek) |
+| Room | **2.8.5** (KSP). Bewusst nicht Room 3.0: weniger Setup-Risiko im knappen Budget; Repository-Schicht macht einen späteren Wechsel lokal |
+| Serialisierung | kotlinx.serialization 1.11.0 |
+| Tests | Robolectric 4.17 (unterstützt SDK 37), Compose UI Test |
 | minSdk / target | 26 / 37 (java.time ohne Desugaring) |
 
 ### Struktur (ein Modul, manuelle DI)

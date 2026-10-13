@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Luma Care</string>
+
+    <string name="shift_header_title">%1$s · %2$s</string>
+    <string name="shift_header_time">%1$s · %2$s</string>
+    <string name="shift_header_remaining">noch %1$s</string>
+    <string name="shift_header_ended">Schicht beendet</string>
+
+    <string name="empty_state_title">Alles erledigt</string>
+    <string name="empty_state_body">Gerade braucht niemand deine Aufmerksamkeit.</string>
+</resources>

@@ -21,6 +21,30 @@ Alle Werte mit `scripts/contrast.py` geprüft. Bei Änderungen Tabelle **und** `
 erreicht es nur 4,37 : 1. Textlinks und Text-Buttons deshalb auf Karten oder Sheets setzen, nicht direkt
 auf den Seitenhintergrund.
 
+## Farben – Material-Rollen
+
+Alle übrigen Rollen im `ColorScheme` explizit gesetzt, damit nichts auf das lila Baseline-Schema
+zurückfällt. Karten setzen ihre Farbe explizit auf `surface` (nicht M3-Default
+`surfaceContainerHighest`).
+
+| Rolle | Light | Dark | Hinweis |
+|---|---|---|---|
+| `surfaceContainerLowest` | `#FFFFFF` | `#17151F` | |
+| `surfaceContainerLow` | `#FFFFFF` | `#1C1A2A` | |
+| `surfaceContainer` | `#FFFFFF` | `#211E32` | |
+| `surfaceContainerHigh` | `#FFFFFF` | `#2A2740` | |
+| `surfaceContainerHighest` | `#F0EFF4` | `#322F48` | `muted` darauf 5,90 / 5,39, `onSurface` 14,2 / 10,8 |
+| `surfaceVariant` | `#F0EFF4` | `#322F48` | |
+| `onSurfaceVariant` | = `muted` `#5C5A66` | = `muted` `#A9A6B6` | |
+| `primaryContainer` / `secondaryContainer` | `#D5EEF0` | `#1F4A4E` | |
+| `onPrimaryContainer` / `onSecondaryContainer` | `#17474B` (8,49) | `#CDEEF0` (7,95) | |
+| `inverseSurface` | `#211E32` | `#ECEAF4` | Snackbar |
+| `inverseOnSurface` | `#ECEAF4` (13,6) | `#211E32` (13,6) | |
+| `inversePrimary` | `#4AAFB6` (6,25) | `#256A70` (5,23) | Aktion in der Snackbar |
+| `error` / `onError` | `#B42318` / `#FFFFFF` (6,57) | `#FDA29B` / `#3A1210` (8,49) | |
+| `errorContainer` / `onErrorContainer` | `#FEE4E2` / `#B42318` (5,45) | `#3A1210` / `#FDA29B` (8,49) | |
+| `outlineVariant` | `#D9D8DF` | `#3D3A52` | Nur dekorative Trenner, kein Kontrastanspruch |
+
 ## Farben – Status
 
 Text/Icon (`on…`) auf Container. Status immer mit Icon + Label + Farbe.
@@ -49,6 +73,7 @@ Bearbeitungsstand (zweite Achse, unabhängig von der Dringlichkeit) als neutrale
 | `bodyMedium` | 14/20 | 400 | Kontext, Metadaten |
 | `labelLarge` | 14/20 | 600 | Buttons |
 | `labelMedium` | 12/16 | 600 | Badges, Chips |
+| `labelSmall` | 12/16 | 600 | Wie `labelMedium`; Material-Default (11 sp) wäre zu klein |
 
 Mindestgröße 12 sp. Ziffern für Uhrzeiten mit `fontFeatureSettings = "tnum"` (gleich breit).
 
@@ -85,5 +110,8 @@ object LumaTheme {
 @Immutable data class LumaStatusColors(val urgent: StatusColor, val attention: StatusColor,
                                        val info: StatusColor, val done: StatusColor)
 ```
+
+`accent` liegt im `ColorScheme` auf `tertiary`, Text darauf auf `onTertiary` (`#211E32`).
+`tertiary` nie als Statusfarbe.
 
 Kein Dynamic Color (Material You): Die Markenfarben sollen stabil bleiben.

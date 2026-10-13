@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nur für Launcher-Icon und Fenster vor dem ersten Compose-Frame; App-Farben liegen in ui/theme/. -->
+    <color name="launcher_background">#4AAFB6</color>
+    <color name="launcher_ink">#211E32</color>
+    <color name="launcher_accent">#FACF39</color>
+    <color name="window_background_light">#F7F7F9</color>
+    <color name="window_background_dark">#17151F</color>
+</resources>
