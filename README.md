@@ -88,13 +88,14 @@ adb shell pm clear com.mulkatz.lumacare
 ./gradlew assembleDebug testDebugUnitTest lint
 ```
 
-Alle Tests laufen auf der JVM, ohne Emulator (Robolectric). Insgesamt über 160 Tests:
+Alle Tests laufen auf der JVM, ohne Emulator (Robolectric). Insgesamt 166 Tests:
 
 | Art | Was |
 |---|---|
 | Unit (Domain) | Prioritizer, EventTransitions, ShiftClock, ShiftHours, PersonDetail, Verlauf |
 | Room in-memory | Seed-Import (vollständig, transaktional, fehlerhafte Daten), Schreibpfad mit bedingtem Update und Undo, Migration v1 → v2 |
-| Compose-UI unter Robolectric | Dashboard, Detail, Schichtverlauf, Kern-Flow; Phone (411 × 891 dp) und Tablet (1280 × 800 dp) |
+| Compose-UI unter Robolectric | Dashboard, Detail, Schichtverlauf, Aktionen, Insets; Phone (411 × 891 dp) und Tablet (1280 × 800 dp) |
+| End-to-End | `CoreFlowE2ETest`: Start → Import → Werner unter *Jetzt handeln* → Detail → Übernehmen → Notiz → Abschließen mit Pflichtnotiz → Rückgängig → erneut abschließen → Werner nicht mehr unter *Jetzt handeln* → Activity neu erzeugen → Zustand bleibt; auf Phone und Tablet |
 
 ## Architektur
 

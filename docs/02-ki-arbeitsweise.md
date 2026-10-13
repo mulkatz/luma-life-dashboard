@@ -74,7 +74,7 @@ beim Blick der Hauptsitzung auf das laufende Gerät gefunden.
 | Flow-Logik | Sortierung nach Zeit ist unsicher, weil die Schichtuhr bei zurückgestellter Systemzeit rückwärts laufen kann | Implementer (Hinweis), Hauptsitzung (Entscheidung); zweite Stelle: Reviewer | Sortierung nach ID an beiden Stellen |
 | Flow-Logik | Weiterleiten bei `urgent` ohne Notiz widersprach Planung §5 | Reviewer | Pflichtnotiz |
 | Flow-Logik | Regeln standen nur im Code | Reviewer | In die Planung übernommen |
-| Flow-UI | „Rückgängig“ in der Snackbar wirkte im Emulator nicht, obwohl die Repository-Logik getestet war | Emulator | <!-- UNDO-FIX --> *Ursache wird von der Hauptsitzung ergänzt.* |
+| Flow-UI | „Rückgängig“ in der Snackbar wirkte im Emulator nicht, obwohl die Repository-Logik getestet war | Emulator | Unter Robolectric nicht nachstellbar, die genaue Ursache ist daher nicht belegt. Anfällig war, dass Undo nur lief, solange eine Coroutine auf das Ergebnis der Snackbar wartete. Ersetzt durch eine Snackbar aus dem ViewModel-Zustand, Undo direkt im Klick, Rückmeldung bei Fehlschlag; auf dem Gerät für Übernehmen und Abschließen bestätigt, im E2E-Test abgedeckt |
 | Flow-UI | Im Test-Quellbaum lagen Kopien von Produktionsdateien (teils veralteter Stand) aus einer Worktree-Prüfung des Implementers | Reviewer (prüft den echten Arbeitsbaum, nicht den Bericht) | Kopien entfernt, Herkunft per Byte-Vergleich belegt |
 | Prozess | CI blockiert durch das GitHub-Actions-Budget | Nutzer (Actions-Tab), Hauptsitzung (Diagnose) | Abrechnung, nicht der Workflow; geprüft wird lokal mit dem Verifier |
 | Prozess | Sitzungslimits unterbrachen Agenten | Hauptsitzung | Mit Kontext fortgesetzt |
