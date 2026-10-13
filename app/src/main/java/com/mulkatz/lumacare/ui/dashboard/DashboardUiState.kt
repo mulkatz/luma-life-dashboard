@@ -1,5 +1,6 @@
 package com.mulkatz.lumacare.ui.dashboard
 
+import com.mulkatz.lumacare.domain.CareData
 import com.mulkatz.lumacare.domain.DashboardModel
 import com.mulkatz.lumacare.domain.Shift
 import java.time.Duration
@@ -11,9 +12,13 @@ sealed interface DashboardUiState {
     /** Import oder Laden ist gescheitert; [DashboardViewModel.retry] versucht es erneut. */
     data object Error : DashboardUiState
 
-    /** „Jetzt“ steht in [DashboardModel.now]. [shift] trägt Typ und Wohnbereich für den Kopfbereich. */
+    /**
+     * „Jetzt“ steht in [DashboardModel.now]. [shift] trägt Typ und Wohnbereich für den Kopfbereich.
+     * [data] ist der Stand, aus dem [model] entstand; das Personendetail rechnet daraus, ohne eigene Quelle.
+     */
     data class Ready(
         val model: DashboardModel,
+        val data: CareData,
         val shift: Shift,
         val remaining: Duration,
         val isShiftOver: Boolean,

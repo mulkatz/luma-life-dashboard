@@ -57,6 +57,7 @@ class DashboardViewModel(
             combine(repository.observeCareData(), clock.ticks) { data, now ->
                 DashboardUiState.Ready(
                     model = Prioritizer.build(data, now, clock.shift),
+                    data = data,
                     shift = clock.shift,
                     remaining = clock.remaining(now),
                     isShiftOver = clock.isShiftOver(now),

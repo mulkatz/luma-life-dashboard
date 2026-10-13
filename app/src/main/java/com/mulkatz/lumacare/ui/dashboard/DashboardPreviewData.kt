@@ -79,6 +79,7 @@ internal object DashboardPreviewData {
 
     private fun readyAt(time: LocalDateTime, data: CareData) = DashboardUiState.Ready(
         model = Prioritizer.build(data, time, shift),
+        data = data,
         shift = shift,
         remaining = Duration.between(time, shift.end),
         isShiftOver = false,

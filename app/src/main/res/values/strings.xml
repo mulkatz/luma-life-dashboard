@@ -95,6 +95,30 @@
     <string name="legend_routine">Strich unter dem Block: Routine, die heute gilt (geplant).</string>
     <string name="legend_now">Punkt und Strich: jetzt.</string>
 
+    <!-- Personendetail -->
+    <string name="list_separator">" · "</string>
+    <string name="detail_room_care_level">Zimmer %1$s · Pflegegrad %2$d</string>
+    <string name="detail_section_hints">Luma-Hinweise · %1$d</string>
+    <string name="detail_section_context">Kontext</string>
+    <string name="detail_section_history">Verlauf</string>
+    <string name="detail_hint_meta">Luma-Hinweis · %1$s %2$s · %3$s</string>
+    <string name="detail_source_conversation">Gespräch</string>
+    <string name="detail_source_call">Anruf</string>
+    <string name="detail_source_message">Nachricht</string>
+    <string name="detail_context_health">Gesundheit</string>
+    <string name="detail_context_routine">Routine heute</string>
+    <string name="detail_context_activity">Aktivität</string>
+    <string name="detail_context_contact">Kontakt</string>
+    <string name="detail_routine_planned">%1$s %2$s · geplant</string>
+    <string name="detail_routine_planned_call">%1$s %2$s · Luma-Anruf · geplant</string>
+    <string name="detail_activity_line">%1$s %2$s · %3$s</string>
+    <string name="detail_contact_line">%1$s, %2$s</string>
+    <string name="detail_history_luma">Luma-Hinweis</string>
+    <string name="detail_preferences">Vorlieben</string>
+    <string name="detail_biography">Biografie</string>
+    <string name="detail_not_found">Zu dieser Person gibt es keine Daten.</string>
+    <string name="detail_select_person">Wähle links eine Person aus.</string>
+
     <!-- Zeiten -->
     <string name="time_just_now">gerade eben</string>
     <plurals name="time_minutes_ago">
